@@ -138,4 +138,15 @@ public class LauncherDbUtils {
             mDb.endTransaction();
         }
     }
+
+    public static ArrayList<Long> getFolderIdsFromCursor(Cursor sc) {
+        try {
+            return iterateCursor(sc,
+                    sc.getColumnIndexOrThrow(Favorites._ID),
+                    new ArrayList<Long>());
+        } finally {
+            sc.close();
+        }
+    }
+
 }

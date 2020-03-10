@@ -55,7 +55,7 @@ class SearchProviderController(private val context: Context) : ColorEngine.OnCol
             if (cache == null || cached != curr) {
                 cache = createProvider(prefs.searchProvider) {
                     val lcConfig = LawnchairConfig.getInstance(context)
-                    createProvider(lcConfig.defaultSearchProvider) { AppSearchSearchProvider(context) }
+                    createProvider(lcConfig.defaultSearchProvider) { BaiduSearchProvider(context) }
                 }
                 cached = cache!!::class.java.name
                 if (prefs.searchProvider != cached) {
@@ -107,28 +107,13 @@ class SearchProviderController(private val context: Context) : ColorEngine.OnCol
 
     companion object : SingletonHolder<SearchProviderController, Context>(ensureOnMainThread(useApplicationContext(::SearchProviderController))) {
         fun getSearchProviders(context: Context) = listOf(
-                AppSearchSearchProvider(context),
-                GoogleSearchProvider(context),
-                // TODO: fall back to this if google is not available per default
                 GoogleWebSearchProvider(context),
-                SFinderSearchProvider(context),
-                if (BuildConfig.FEATURE_QUINOA) {
-                    SesameSearchProvider(context)
-                } else {
-                    DisabledDummySearchProvider(context)
-                },
-                GoogleGoSearchProvider(context),
-                FirefoxSearchProvider(context),
-                DuckDuckGoSearchProvider(context),
                 DDGWebSearchProvider(context),
-                BingSearchProvider(context),
                 BingWebSearchProvider(context),
                 StartpageWebSearchProvider(context),
                 BaiduSearchProvider(context),
                 BaiduWebSearchProvider(context),
-                YandexSearchProvider(context),
                 YandexWebSearchProvider(context),
-                QwantSearchProvider(context),
                 QwantWebSearchProvider(context),
                 EcosiaWebSearchProvider(context),
                 SearchLiteSearchProvider(context),
@@ -137,5 +122,6 @@ class SearchProviderController(private val context: Context) : ColorEngine.OnCol
                 NaverWebSearchProvider(context),
                 YahooWebSearchProvider(context)
         ).filter { it.isAvailable }
+
     }
 }

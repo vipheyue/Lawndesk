@@ -136,7 +136,7 @@ public class DragView extends View {
         mDragLayer = launcher.getDragLayer();
         mDragController = launcher.getDragController();
 
-        iconProvider = IconProvider.newInstance(launcher);
+        iconProvider = LauncherAppState.getInstance(launcher).getIconCache().getIconProvider();
 
         final float scale = (bitmap.getWidth() + finalScaleDps) / bitmap.getWidth();
 
@@ -364,11 +364,6 @@ public class DragView extends View {
                 return sm.getShortcutIconDrawable(si.get(0), iconDpi);
             }
         } else if (info.itemType == LauncherSettings.Favorites.ITEM_TYPE_FOLDER) {
-            FolderInfo folderInfo = (FolderInfo) info;
-            if (folderInfo.isCoverMode()) {
-                return getFullDrawable(folderInfo.getCoverInfo(), appState, outObj);
-            }
-
             FolderAdaptiveIcon icon =  FolderAdaptiveIcon.createFolderAdaptiveIcon(
                     mLauncher, info.id, new Point(mBitmap.getWidth(), mBitmap.getHeight()));
             if (icon == null) {

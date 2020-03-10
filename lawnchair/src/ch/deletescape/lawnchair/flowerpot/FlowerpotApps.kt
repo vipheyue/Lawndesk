@@ -19,17 +19,15 @@ package ch.deletescape.lawnchair.flowerpot
 
 import android.content.Context
 import android.content.Intent
-import android.os.Process
 import android.os.UserHandle
 import ch.deletescape.lawnchair.flowerpot.rules.CodeRule
 import ch.deletescape.lawnchair.flowerpot.rules.Rule
 import com.android.launcher3.compat.LauncherAppsCompat
 import com.android.launcher3.compat.UserManagerCompat
-import com.android.launcher3.shortcuts.ShortcutInfoCompat
 import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.PackageUserKey
 
-class FlowerpotApps(private val context: Context, private val pot: Flowerpot) : LauncherAppsCompat.OnAppsChangedCallbackCompat {
+class FlowerpotApps(private val context: Context, private val pot: Flowerpot) {
 
     private val launcherApps = LauncherAppsCompat.getInstance(context)
     private val intentMatches = mutableSetOf<String>()
@@ -38,7 +36,6 @@ class FlowerpotApps(private val context: Context, private val pot: Flowerpot) : 
 
     init {
         filterApps()
-        launcherApps.addOnAppsChangedCallback(this)
     }
 
     private fun filterApps() {
@@ -80,43 +77,5 @@ class FlowerpotApps(private val context: Context, private val pot: Flowerpot) : 
                 intentMatches.add(it.activityInfo.packageName)
             }
         }
-    }
-
-    override fun onPackageAdded(packageName: String, user: UserHandle) {
-        queryIntentMatches()
-        addFromPackage(packageName, user)
-    }
-
-    override fun onPackageChanged(packageName: String, user: UserHandle) {
-        onPackageAdded(packageName, user)
-    }
-
-    override fun onPackageRemoved(packageName: String, user: UserHandle) {
-        matches.removeAll {
-            it.componentName.packageName == packageName && it.user == user
-        }
-        packageMatches.removeAll {
-            it.mPackageName == packageName && it.mUser == user
-        }
-    }
-
-    override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
-        packageNames.forEach { onPackageAdded(it, user) }
-    }
-
-    override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
-        packageNames.forEach { onPackageRemoved(it, user) }
-    }
-
-    override fun onPackagesSuspended(packageNames: Array<out String>, user: UserHandle) {
-        packageNames.forEach { onPackageRemoved(it, user) }
-    }
-
-    override fun onPackagesUnsuspended(packageNames: Array<out String>, user: UserHandle) {
-        packageNames.forEach { onPackageAdded(it, user) }
-    }
-
-    override fun onShortcutsChanged(packageName: String?, shortcuts: MutableList<ShortcutInfoCompat>?, user: UserHandle?) {
-
     }
 }

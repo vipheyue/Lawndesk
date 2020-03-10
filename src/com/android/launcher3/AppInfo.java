@@ -28,11 +28,12 @@ import com.android.launcher3.compat.UserManagerCompat;
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.PackageManagerHelper;
+import java.io.Serializable;
 
 /**
  * Represents an app in AllAppsView.
  */
-public class AppInfo extends ItemInfoWithIcon {
+public class AppInfo extends ItemInfoWithIcon implements Serializable {
 
     /**
      * The intent used to start the application.
@@ -119,4 +120,19 @@ public class AppInfo extends ItemInfoWithIcon {
             info.runtimeStatusFlags |= FLAG_ADAPTIVE_ICON;
         }
     }
+
+    public ComponentKey getComponentKey() {
+        if (intent != null) {
+            return new ComponentKey(intent.getComponent(), user);
+        }
+        return null;
+    }
+
+    public String getPackageName() {
+        if (getTargetComponent() != null) {
+            return getTargetComponent().getPackageName();
+        }
+        return null;
+    }
+
 }

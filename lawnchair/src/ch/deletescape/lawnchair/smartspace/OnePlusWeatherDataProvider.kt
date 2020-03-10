@@ -21,12 +21,14 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.location.Criteria
 import android.location.LocationManager
+import android.os.AsyncTask
 import android.support.annotation.Keep
 import ch.deletescape.lawnchair.checkLocationAccess
 import ch.deletescape.lawnchair.location.IPLocation
 import ch.deletescape.lawnchair.perms.CustomPermissionManager
 import ch.deletescape.lawnchair.runOnMainThread
 import ch.deletescape.lawnchair.runOnUiWorkerThread
+import ch.deletescape.lawnchair.smartspace.LawnchairSmartspaceController
 import ch.deletescape.lawnchair.smartspace.weather.icons.WeatherIconManager
 import ch.deletescape.lawnchair.twilight.TwilightManager
 import ch.deletescape.lawnchair.util.Temperature
@@ -36,6 +38,7 @@ import net.oneplus.launcher.OPWeatherProvider
 import java.util.*
 import java.util.Calendar.HOUR_OF_DAY
 import java.util.concurrent.TimeUnit
+
 
 @Keep
 class OnePlusWeatherDataProvider(controller: LawnchairSmartspaceController) :
@@ -77,12 +80,11 @@ class OnePlusWeatherDataProvider(controller: LawnchairSmartspaceController) :
     }
 
     private fun update(weatherData: OPWeatherProvider.WeatherData) {
-        runOnUiWorkerThread {
+        AsyncTask.execute {
             val weather = LawnchairSmartspaceController.WeatherData(
                     getConditionIcon(weatherData),
                     Temperature(weatherData.temperature, getTemperatureUnit(weatherData)),
-                    forecastIntent = Intent().setClassName(OPWeatherProvider.WEATHER_PACKAGE_NAME, OPWeatherProvider.WEATHER_LAUNCH_ACTIVITY)
-            )
+                    forecastIntent = Intent().setClassName(OPWeatherProvider.WEATHER_PACKAGE_NAME, OPWeatherProvider.WEATHER_LAUNCH_ACTIVITY))
             runOnMainThread { updateData(weather, null) }
         }
     }

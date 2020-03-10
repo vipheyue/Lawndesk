@@ -89,17 +89,7 @@ public class QuickScrubController implements OnAlarmListener {
         mFinishedTransitionToQuickScrub = false;
         mActivityControlHelper = controlHelper;
 
-        /* TODO: reimplement this
-        if (startingFromHome) {
-            ScrimView scrim = mActivity.findViewById(R.id.scrim_view);
-            if (scrim != null) {
-                scrim.hide();
-            }
-        }
-        */
-
         snapToNextTaskIfAvailable();
-        mActivity.getUserEventDispatcher().resetActionDurationMillis();
     }
 
     public void onQuickScrubEnd() {
@@ -116,10 +106,6 @@ public class QuickScrubController implements OnAlarmListener {
                     if (!result) {
                         taskView.notifyTaskLaunchFailed(TAG);
                         breakOutOfQuickScrub();
-                    } else {
-                        mActivity.getUserEventDispatcher().logTaskLaunchOrDismiss(Touch.DRAGDROP,
-                                LauncherLogProto.Action.Direction.NONE, page,
-                                TaskUtils.getLaunchComponentKeyForTask(taskView.getTask().key));
                     }
                     mWaitingForTaskLaunch = false;
                 }, taskView.getHandler());

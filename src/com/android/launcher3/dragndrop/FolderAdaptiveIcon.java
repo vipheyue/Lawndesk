@@ -100,7 +100,6 @@ public class FolderAdaptiveIcon extends AdaptiveIconCompat {
 
         // Initialize badge
         c.setBitmap(badgeBitmap);
-        bg.drawShadow(c);
         bg.drawBackgroundStroke(c);
         icon.drawBadge(c);
 

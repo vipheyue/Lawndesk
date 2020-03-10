@@ -49,7 +49,7 @@ class OptionsState(id: Int) : LauncherState(id, LauncherLogProto.ContainerType.O
         val insets = launcher.dragLayer.insets
 
         val scaledHeight = scale * ws.normalChildHeight
-        val shrunkTop = (insets.top + grid.dropTargetBarSizePx).toFloat()
+        val shrunkTop = insets.top.toFloat()
         val shrunkBottom = (ws.measuredHeight - insets.bottom
                 - grid.workspacePadding.bottom
                 - grid.workspaceSpringLoadedBottomSpace).toFloat()

@@ -110,7 +110,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:checked="true"
-                    android:text="@string/backup_location_device_storage" />
+                    android:text="@string/backup_location_device_storage_v2" />
 
                 <RadioButton
                     android:id="@+id/location_documents"

@@ -26,7 +26,6 @@ import ch.deletescape.lawnchair.LawnchairLauncher
 import ch.deletescape.lawnchair.gestures.gestures.*
 import ch.deletescape.lawnchair.gestures.handlers.*
 import ch.deletescape.lawnchair.lawnchairPrefs
-import com.android.launcher3.Utilities
 import com.android.launcher3.util.TouchController
 import org.json.JSONException
 import org.json.JSONObject
@@ -146,17 +145,15 @@ class GestureController(val launcher: LawnchairLauncher) : TouchController {
                 // BlankGestureHandler(context, null), -> Added in apply block
                 SleepGestureHandler(context, null),
                 SleepGestureHandlerTimeout(context, null),
-                OpenDrawerGestureHandler(context, null),
                 OpenWidgetsGestureHandler(context, null),
                 OpenSettingsGestureHandler(context, null),
                 OpenOverviewGestureHandler(context, null),
-                StartGlobalSearchGestureHandler(context, null),
+                StartExternalSearchGestureHandler(context, null),
                 StartAppSearchGestureHandler(context, null),
                 NotificationsOpenGestureHandler(context, null),
                 OpenOverlayGestureHandler(context, null),
                 StartAssistantGestureHandler(context, null),
                 StartVoiceSearchGestureHandler(context, null),
-                PlayDespacitoGestureHandler(context, null),
                 StartAppGestureHandler(context, null),
                 OpenRecentsGestureHandler(context, null),
                 LaunchMostRecentTaskGestureHandler(context, null)
@@ -164,6 +161,6 @@ class GestureController(val launcher: LawnchairLauncher) : TouchController {
             if (hasBlank) {
                 add(1, BlankGestureHandler(context, null))
             }
-        }.filter { it.isAvailableForSwipeUp(isSwipeUp) }
+        }
     }
 }

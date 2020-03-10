@@ -396,7 +396,7 @@ public class LoaderCursor extends CursorWrapper {
      * otherwise marks it for deletion.
      */
     public void checkAndAddItem(ItemInfo info, BgDataModel dataModel) {
-        if (checkItemPlacement(info, dataModel.workspaceScreens)) {
+        if (checkItemPlacement(info, dataModel.workspaceScreens, dataModel.folderIDs)) {
             dataModel.addItem(mContext, info, false);
         } else {
             markDeleted("Item position overlap");
@@ -406,20 +406,15 @@ public class LoaderCursor extends CursorWrapper {
     /**
      * check & update map of what's occupied; used to discard overlapping/invalid items
      */
-    protected boolean checkItemPlacement(ItemInfo item, ArrayList<Long> workspaceScreens) {
+    protected boolean checkItemPlacement(ItemInfo item, ArrayList<Long> workspaceScreens, ArrayList<Long> folderIDs) {
         long containerIndex = item.screenId;
         if (item.container == LauncherSettings.Favorites.CONTAINER_HOTSEAT) {
-            // Return early if we detect that an item is under the hotseat button
-            if (!FeatureFlags.NO_ALL_APPS_ICON &&
-                    mIDP.isAllAppsButtonRank((int) item.screenId)) {
-                Log.e(TAG, "Error loading shortcut into hotseat " + item
-                        + " into position (" + item.screenId + ":" + item.cellX + ","
-                        + item.cellY + ") occupied by all apps");
-                return false;
-            }
-
             final GridOccupancy hotseatOccupancy =
                     occupied.get((long) LauncherSettings.Favorites.CONTAINER_HOTSEAT);
+
+            if (prefs.getDockHide()) {
+                return false;
+            }
 
             int hotseatRows = Utilities.getLawnchairPrefs(mContext).getDockRowsCount();
             int hotseatSize = mIDP.numHotseatIcons;
@@ -455,8 +450,11 @@ public class LoaderCursor extends CursorWrapper {
                 // The item has an invalid screen id.
                 return false;
             }
+        } else if (!folderIDs.contains(item.container)) {
+            // item in invalid folder id
+            return false;
         } else {
-            // Skip further checking if it is not the hotseat or workspace container
+            // Skip further checking if it is not the hotseat or workspace container or valid folder id
             return true;
         }
 
@@ -474,11 +472,12 @@ public class LoaderCursor extends CursorWrapper {
 
         if (!occupied.containsKey(item.screenId)) {
             GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID) {
-                // Mark the first row as occupied (if the feature is enabled)
-                // in order to account for the QSB.
-                screen.markCells(0, 0, countX + 1, 1, FeatureFlags.QSB_ON_FIRST_SCREEN);
-            }
+            // 标记QSB占用
+//            if (item.screenId == Workspace.FIRST_SCREEN_ID) {
+//                // Mark the first row as occupied (if the feature is enabled)
+//                // in order to account for the QSB.
+//                screen.markCells(0, 0, countX + 1, 1, FeatureFlags.QSB_ON_FIRST_SCREEN);
+//            }
             occupied.put(item.screenId, screen);
         }
         final GridOccupancy occupancy = occupied.get(item.screenId);

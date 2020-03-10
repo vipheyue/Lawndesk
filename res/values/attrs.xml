@@ -40,11 +40,10 @@
         <attr name="iconSizeOverride" format="dimension" />
         <attr name="iconDisplay" format="integer">
             <enum name="workspace" value="0" />
-            <enum name="all_apps" value="1" />
+            <enum name="search" value="1" />
             <enum name="folder" value="2" />
             <enum name="widget_section" value="3" />
             <enum name="shortcut_popup" value="4" />
-            <enum name="drawer_folder" value="5"/>
         </attr>
         <attr name="centerVertically" format="boolean" />
     </declare-styleable>

@@ -79,9 +79,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
     private boolean mHideText;
 
     private static final int DISPLAY_WORKSPACE = 0;
-    private static final int DISPLAY_ALL_APPS = 1;
     private static final int DISPLAY_FOLDER = 2;
-    private static final int DISPLAY_DRAWER_FOLDER = 5;
 
     private static final int[] STATE_PRESSED = new int[] {android.R.attr.state_pressed};
 
@@ -191,28 +189,11 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
             int lines = prefs.getHomeLabelRows();
             setLineCount(lines);
             colorEngine.addColorChangeListeners(this, Resolvers.WORKSPACE_ICON_LABEL);
-        } else if (display == DISPLAY_ALL_APPS) {
-            mHideText = prefs.getHideAllAppsAppLabels();
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, isTextHidden() ? 0 : grid.allAppsIconTextSizePx);
-            setCompoundDrawablePadding(grid.allAppsIconDrawablePaddingPx);
-            defaultIconSize = grid.allAppsIconSizePx;
-            int lines = prefs.getDrawerLabelRows();
-            setLineCount(lines);
-            colorEngine.addColorChangeListeners(this, Resolvers.ALLAPPS_ICON_LABEL);
         } else if (display == DISPLAY_FOLDER) {
             mHideText = prefs.getHideAppLabels();
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, isTextHidden() ? 0 : grid.folderChildTextSizePx);
-            setCompoundDrawablePadding(grid.folderChildDrawablePaddingPx);
-            defaultIconSize = grid.folderChildIconSizePx;
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, isTextHidden() ? 0 : grid.iconTextSizePx);
+            setCompoundDrawablePadding(grid.iconDrawablePaddingPx);
             int lines = prefs.getHomeLabelRows();
-            setLineCount(lines);
-        } else if (display == DISPLAY_DRAWER_FOLDER) {
-            mHideText = prefs.getHideAllAppsAppLabels();
-            setTextSize(TypedValue.COMPLEX_UNIT_PX,
-                    isTextHidden() ? 0 : grid.allAppsFolderChildTextSizePx);
-            setCompoundDrawablePadding(grid.allAppsFolderChildDrawablePaddingPx);
-            defaultIconSize = grid.allAppsFolderChildIconSizePx;
-            int lines = prefs.getDrawerLabelRows();
             setLineCount(lines);
         }
         CustomFontManager customFontManager = CustomFontManager.Companion.getInstance(context);
@@ -250,12 +231,8 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
 
     protected int getCustomFontType(int display) {
         switch (display) {
-            case DISPLAY_ALL_APPS:
-                return CustomFontManager.FONT_ALL_APPS_ICON;
             case DISPLAY_FOLDER:
                 return CustomFontManager.FONT_FOLDER_ICON;
-            case DISPLAY_DRAWER_FOLDER:
-                return CustomFontManager.FONT_DRAWER_FOLDER;
             default:
                 return -1;
         }

@@ -43,8 +43,6 @@ public abstract class OverviewButtonClickListener implements View.OnClickListene
 
     private void handleViewClick(View view, int action) {
         handleViewClick(view);
-        Launcher.getLauncher(view.getContext()).getUserEventDispatcher()
-                .logActionOnControl(action, mControlType);
     }
 
     public abstract void handleViewClick(View view);

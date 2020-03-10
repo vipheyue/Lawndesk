@@ -156,8 +156,8 @@
     <string name="theme_title">主题</string>
     <string name="theme_automatic">自动</string>
     <string name="theme_default">默认</string>
-    <string name="theme_light">光</string>
-    <string name="theme_dark">黑暗</string>
+    <string name="theme_light">亮色</string>
+    <string name="theme_dark">暗色</string>
     <string name="pref_open_source_licenses_title">开放源代码许可</string>
     <string name="all_apps_personal_tab" msgid="4190252696685155002">"个人"</string>
     <string name="all_apps_work_tab" msgid="4884822796154055118">"工作"</string>
@@ -168,4 +168,32 @@
     <string name="work_mode_off_label" msgid="3194894777601421047">"通知和应用均已关闭"</string>
     <string name="bottom_work_tab_user_education_close_button" msgid="4224492243977802135">"关闭"</string>
     <string name="bottom_work_tab_user_education_closed" msgid="1098340939861869465">"已关闭"</string>
+
+    <string name="add_apps_to_folder_title">添加应用到文件夹</string>
+    <string name="system_app">系统应用</string>
+    <string name="locate_app_message">在桌面上定位此应用？</string>
+    <string name="initializing_desktop">正在初始化桌面…</string>
+
+    <string name="about_pref_summary_v2">应用版本、链接</string>
+    <string name="app_version">应用版本</string>
+    <string name="play_store">Play 商店</string>
+    <string name="based_on">基于 Lawnchair</string>
+
+    <string name="pref_external_search_provider">外部搜索App</string>
+    <string name="action_external_search">启动外部搜索</string>
+
+    <string name="button_overview_mode">概览模式</string>
+    <string name="message_storage_permission_required">需要获取存储空间权限才能开启毛玻璃效果</string>
+
+    <string name="download_oneplus_weather">下载一加天气</string>
+    <string name="supported_weather_source">受支持的天气源</string>
+
+    <string name="backup_location_device_storage_v2">“Lawndesk”文件夹</string>
+
+    <string name="pref_category_folder">文件夹</string>
+    <string name="folder_grid_size">文件夹网格大小</string>
+    <string name="pref_folder_icon_scale">文件夹图标大小</string>
+    <string name="disable_auto_fill_title">禁用图标自动补位</string>
+    <string name="folder_icon_scale_title">文件夹图标大小</string>
+
 </resources>

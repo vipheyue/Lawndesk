@@ -90,7 +90,7 @@
             app:content="@xml/lawnchair_fonts_preference_v2"/>
 
         <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
-            android:defaultValue="@bool/config_default_enable_blur"
+            android:defaultValue="true"
             android:key="pref_enableBlur"
             android:persistent="true"
             android:summary="@string/blur_pref_summary"

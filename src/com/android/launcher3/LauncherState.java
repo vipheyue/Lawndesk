@@ -27,8 +27,9 @@ import android.view.animation.Interpolator;
 
 import ch.deletescape.lawnchair.states.HomeState;
 import ch.deletescape.lawnchair.states.OptionsState;
+import ch.deletescape.lawnchair.states.FolderState;
 import com.android.launcher3.states.SpringLoadedState;
-import com.android.launcher3.uioverrides.AllAppsState;
+import com.android.launcher3.uioverrides.SearchState;
 import com.android.launcher3.uioverrides.FastOverviewState;
 import com.android.launcher3.uioverrides.OverviewState;
 import com.android.launcher3.uioverrides.UiFactory;
@@ -49,12 +50,8 @@ public class LauncherState {
      */
     public static final int NONE = 0;
     public static final int HOTSEAT_ICONS = 1 << 0;
-    public static final int HOTSEAT_SEARCH_BOX = 1 << 1;
-    public static final int ALL_APPS_HEADER = 1 << 2;
-    public static final int ALL_APPS_HEADER_EXTRA = 1 << 3; // e.g. app predictions
-    public static final int ALL_APPS_CONTENT = 1 << 4;
-    public static final int VERTICAL_SWIPE_INDICATOR = 1 << 5;
-    public static final int OPTIONS_VIEW = 1 << 6;
+    public static final int SEARCH_VIEW = 1 << 1;
+    public static final int OPTIONS_VIEW = 1 << 2;
 
     protected static final int FLAG_MULTI_PAGE = 1 << 0;
     protected static final int FLAG_DISABLE_ACCESSIBILITY = 1 << 1;
@@ -90,15 +87,15 @@ public class LauncherState {
     public static final LauncherState SPRING_LOADED = new SpringLoadedState(1);
     public static final LauncherState OVERVIEW = new OverviewState(2);
     public static final LauncherState FAST_OVERVIEW = new FastOverviewState(3);
-    public static final LauncherState ALL_APPS = new AllAppsState(4);
+    public static final LauncherState FOLDER = new FolderState(4);
     public static final LauncherState OPTIONS = new OptionsState(5);
+    public static final LauncherState SEARCH = new SearchState(4);
 
     protected static final Rect sTempRect = new Rect();
 
     public final int ordinal;
 
     /**
-     * Used for containerType in {@link com.android.launcher3.logging.UserEventDispatcher}
      */
     public final int containerType;
 
@@ -202,22 +199,18 @@ public class LauncherState {
 
     public int getVisibleElements(Launcher launcher) {
         if (launcher.getDeviceProfile().isVerticalBarLayout()) {
-            return HOTSEAT_ICONS | VERTICAL_SWIPE_INDICATOR;
+            return HOTSEAT_ICONS;
         }
-        return HOTSEAT_ICONS | HOTSEAT_SEARCH_BOX | VERTICAL_SWIPE_INDICATOR;
+        return HOTSEAT_ICONS;
     }
 
     /**
      * Fraction shift in the vertical translation UI and related properties
      *
-     * @see com.android.launcher3.allapps.AllAppsTransitionController
      */
-    public float getVerticalProgress(Launcher launcher) {
-        return 1f;
-    }
 
     public float getScrimProgress(Launcher launcher) {
-        return getVerticalProgress(launcher);
+        return 1f;
     }
 
     public float getWorkspaceScrimAlpha(Launcher launcher) {

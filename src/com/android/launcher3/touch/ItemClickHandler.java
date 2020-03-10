@@ -60,8 +60,6 @@ public class ItemClickHandler {
      */
     public static final OnClickListener INSTANCE = ItemClickHandler::onClick;
 
-    public static final OnClickListener FOLDER_COVER_INSTANCE = ItemClickHandler::onClickFolderCover;
-
     private static void onClick(View v) {
         // Make sure that rogue clicks don't get through while allapps is launching, or after the
         // view has detached (it's possible for this to happen if the view is removed mid touch).
@@ -82,27 +80,13 @@ public class ItemClickHandler {
                 onClickFolderIcon(v);
             }
         } else if (tag instanceof AppInfo) {
-            startAppShortcutOrInfoActivity(v, (AppInfo) tag, launcher);
+            AppInfo app = (AppInfo) tag;
+            startAppShortcutOrInfoActivity(v, app, launcher);
+            launcher.addRecentLaunchedApps(app.getComponentKey());
         } else if (tag instanceof LauncherAppWidgetInfo) {
             if (v instanceof PendingAppWidgetHostView) {
                 onClickPendingWidget((PendingAppWidgetHostView) v, launcher);
             }
-        }
-    }
-
-    private static void onClickFolderCover(View v) {
-        if (v.getWindowToken() == null) {
-            return;
-        }
-
-        Launcher launcher = Launcher.getLauncher(v.getContext());
-        if (!launcher.getWorkspace().isFinishedSwitchingState()) {
-            return;
-        }
-
-        Object tag = v.getTag();
-        if (tag instanceof FolderInfo) {
-            onClickAppShortcut(v, ((FolderInfo) tag).getCoverInfo(), launcher);
         }
     }
 
@@ -111,7 +95,7 @@ public class ItemClickHandler {
      *
      * @param v The view that was clicked. Must be an instance of {@link FolderIcon}.
      */
-    private static void onClickFolderIcon(View v) {
+    public static void onClickFolderIcon(View v) {
         Folder folder = ((FolderIcon) v).getFolder();
         if (!folder.isOpen() && !folder.isDestroyed()) {
             // Open the requested folder

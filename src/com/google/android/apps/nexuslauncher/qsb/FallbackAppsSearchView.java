@@ -6,15 +6,14 @@ import android.util.AttributeSet;
 import ch.deletescape.lawnchair.globalsearch.SearchProvider;
 import ch.deletescape.lawnchair.globalsearch.SearchProviderController;
 import ch.deletescape.lawnchair.globalsearch.providers.web.WebSearchProvider;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.Launcher;
-import com.android.launcher3.allapps.AllAppsContainerView;
 import com.android.launcher3.allapps.AllAppsStore.OnUpdateListener;
 import com.android.launcher3.allapps.AlphabeticalAppsList;
 import com.android.launcher3.allapps.search.AllAppsSearchBarController;
 import com.android.launcher3.allapps.search.AllAppsSearchBarController.Callbacks;
 import com.android.launcher3.util.ComponentKey;
-import com.google.android.apps.nexuslauncher.allapps.PredictionsFloatingHeader;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +22,7 @@ public class FallbackAppsSearchView extends ExtendedEditText implements OnUpdate
     final AllAppsSearchBarController DI;
     AllAppsQsbLayout DJ;
     AlphabeticalAppsList mApps;
-    AllAppsContainerView mAppsView;
+    SearchContainerView mSearchContainerView;
 
     public FallbackAppsSearchView(Context context) {
         this(context, null);
@@ -40,27 +39,33 @@ public class FallbackAppsSearchView extends ExtendedEditText implements OnUpdate
 
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Launcher.getLauncher(getContext()).getAppsView().getAppsStore().addUpdateListener(this);
+        Launcher.getLauncher(getContext()).getSearchView().getAppsStore().addUpdateListener(this);
     }
 
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        Launcher.getLauncher(getContext()).getAppsView().getAppsStore().removeUpdateListener(this);
+        Launcher.getLauncher(getContext()).getSearchView().getAppsStore().removeUpdateListener(this);
     }
 
     @Override
-    public void onSearchResult(String query, ArrayList<ComponentKey> apps, List<String> suggestions) {
+    public void onSearchResult(String query, ArrayList<ComponentKey> apps) {
         if (getParent() != null) {
             if (apps != null) {
                 mApps.setOrderedFilter(apps);
             }
-            if (suggestions != null) {
-                mApps.setSearchSuggestions(suggestions);
-            }
-            if (apps != null || suggestions != null) {
+            if (apps != null) {
                 dV();
                 x(true);
-                mAppsView.setLastSearchQuery(query);
+                mSearchContainerView.setLastSearchQuery(query);
+            }
+        }
+    }
+
+    @Override
+    public void onSuggestions(List<String> suggestions) {
+        if (getParent() != null) {
+            if (suggestions != null) {
+                mApps.setSearchSuggestions(suggestions);
             }
         }
     }
@@ -73,7 +78,7 @@ public class FallbackAppsSearchView extends ExtendedEditText implements OnUpdate
             }
             x(false);
             DJ.mDoNotRemoveFallback = true;
-            mAppsView.onClearSearchResult();
+            mSearchContainerView.onClearSearchResult();
             DJ.mDoNotRemoveFallback = false;
         }
     }
@@ -98,13 +103,13 @@ public class FallbackAppsSearchView extends ExtendedEditText implements OnUpdate
     }
 
     private void x(boolean z) {
-        PredictionsFloatingHeader predictionsFloatingHeader = (PredictionsFloatingHeader) mAppsView.getFloatingHeaderView();
-        predictionsFloatingHeader.setCollapsed(z);
+//        PredictionsFloatingHeader predictionsFloatingHeader = (PredictionsFloatingHeader) mAppsView.getFloatingHeaderView();
+//        predictionsFloatingHeader.setCollapsed(z);
     }
 
     private void dV() {
         this.DJ.setShadowAlpha(0);
-        mAppsView.onSearchResultsChanged();
+        mSearchContainerView.onSearchResultsChanged();
     }
 
     private SearchProvider getSearchProvider() {

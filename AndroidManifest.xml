@@ -55,6 +55,7 @@
         android:fullBackupContent="@xml/backupscheme"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/derived_app_name"
         android:theme="@style/AppTheme"
         android:largeHeap="@bool/config_largeHeap"
@@ -66,28 +67,6 @@
         Main launcher activity. When extending only change the name, and keep all the
         attributes and intent filters the same
         -->
-        <activity
-            android:name="ch.deletescape.lawnchair.LawnchairLauncher"
-            android:launchMode="singleTask"
-            android:clearTaskOnLaunch="true"
-            android:stateNotNeeded="true"
-            android:windowSoftInputMode="adjustPan"
-            android:screenOrientation="unspecified"
-            android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
-            android:resizeableActivity="true"
-            android:resumeWhilePausing="true"
-            android:taskAffinity=""
-            android:enabled="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.HOME" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.MONKEY"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
-                <category android:name="android.intent.category.LAUNCHER_APP"/>
-            </intent-filter>
-        </activity>
-
         <!--
         The settings activity. When extending keep the intent filter present
         -->

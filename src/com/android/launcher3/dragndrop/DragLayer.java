@@ -90,7 +90,6 @@ public class DragLayer extends BaseDragLayer<Launcher> {
     private final WorkspaceAndHotseatScrim mScrim;
 
     private final WorkspaceOptionModeTouchHelper mWorkspaceOptionModeTouchHelper;
-
     /**
      * Used to create a new DragLayer from XML.
      *

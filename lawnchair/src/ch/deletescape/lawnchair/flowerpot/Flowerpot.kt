@@ -107,7 +107,7 @@ class Flowerpot(private val context: Context, val name: String, private val load
     /**
      * Class used to interact with Pots as a whole, load hem
      */
-    class Manager private constructor(private val context: Context) {
+    class FlowerpotManager constructor(private val context: Context) {
 
         private val pots = mutableMapOf<String, Flowerpot>()
 
@@ -126,27 +126,7 @@ class Flowerpot(private val context: Context, val name: String, private val load
             }
         }
 
-        /**
-         * Get a pot by its name, returns null if no pot with this name has been loaded
-         *
-         * @param name (code) name of the flowerpot, usually the filename of a flowerpot file
-         * @param forceLoad Whether or not the pot should be loaded if it hasn't already been
-         * @return the pot or null if none exists with this name
-         */
-        fun getPot(name: String, forceLoad: Boolean = true) = pots[name]?.apply {
-            if (forceLoad) {
-                ensureLoaded()
-            }
-        }
-
         fun getAllPots() = pots.values
 
-        companion object: SingletonHolder<Manager, Context>(ensureOnMainThread(useApplicationContext(::Manager))) {
-
-            @JvmStatic
-            override fun getInstance(arg: Context): Manager {
-                return super.getInstance(arg)
-            }
-        }
     }
 }

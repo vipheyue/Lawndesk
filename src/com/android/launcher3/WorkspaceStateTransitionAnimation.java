@@ -20,8 +20,8 @@ import static ch.deletescape.lawnchair.views.LawnchairBackgroundView.ALPHA_INDEX
 import static com.android.launcher3.LauncherAnimUtils.DRAWABLE_ALPHA;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY;
 import static com.android.launcher3.LauncherState.HOTSEAT_ICONS;
-import static com.android.launcher3.LauncherState.HOTSEAT_SEARCH_BOX;
 import static com.android.launcher3.LauncherState.OPTIONS_VIEW;
+import static com.android.launcher3.LauncherState.SEARCH_VIEW;
 import static com.android.launcher3.anim.AnimatorSetBuilder.ANIM_BLUR_FADE;
 import static com.android.launcher3.anim.AnimatorSetBuilder.ANIM_WORKSPACE_FADE;
 import static com.android.launcher3.anim.AnimatorSetBuilder.ANIM_WORKSPACE_SCALE;
@@ -34,6 +34,7 @@ import static com.android.launcher3.graphics.WorkspaceAndHotseatScrim.SYSUI_PROG
 import android.view.View;
 import android.view.animation.Interpolator;
 import ch.deletescape.lawnchair.LawnchairLauncher;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import ch.deletescape.lawnchair.util.InvertedMultiValueAlpha;
 import ch.deletescape.lawnchair.util.InvertedMultiValueAlpha.InvertedAlphaProperty;
 import ch.deletescape.lawnchair.views.LawnchairBackgroundView;
@@ -105,6 +106,10 @@ public class WorkspaceStateTransitionAnimation {
         OptionsPanel optionsPanel = LawnchairLauncher.getLauncher(mLauncher).getOptionsView();
         propertySetter.setViewAlpha(optionsPanel, (elements & OPTIONS_VIEW) != 0 ? 1 : 0, fadeInterpolator);
 
+        // Set search view
+        SearchContainerView searchView = LawnchairLauncher.getLauncher(mLauncher).getSearchView();
+        propertySetter.setViewAlpha(searchView, (elements & SEARCH_VIEW) != 0 ? 1 : 0, fadeInterpolator);
+
         if (!config.playNonAtomicComponent()) {
             // Only the alpha and scale, handled above, are included in the atomic animation.
             return;
@@ -115,9 +120,6 @@ public class WorkspaceStateTransitionAnimation {
                 scaleAndTranslation[1], translationInterpolator);
         propertySetter.setFloat(mWorkspace, View.TRANSLATION_Y,
                 scaleAndTranslation[2], translationInterpolator);
-
-        propertySetter.setViewAlpha(mLauncher.getHotseatSearchBox(),
-                (elements & HOTSEAT_SEARCH_BOX) != 0 ? 1 : 0, fadeInterpolator);
 
         // Set scrim
         WorkspaceAndHotseatScrim scrim = mLauncher.getDragLayer().getScrim();

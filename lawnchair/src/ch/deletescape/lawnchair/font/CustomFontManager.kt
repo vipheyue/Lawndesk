@@ -61,11 +61,6 @@ class CustomFontManager(private val context: Context) {
     private val systemShortcutFont = deepShortcutFont
     private val taskOptionFont = deepShortcutFont
 
-    private val allAppsFont = FontPref("pref_font_allApps", launcherCondensed)
-    private val drawerFolderFont = allAppsFont
-    private val actionFont = FontPref("pref_font_drawerAppActions", launcherCondensed)
-    private val drawerTab = FontPref("pref_font_drawerTab", uiMedium)
-
     private fun createFontMap(): Map<Int, FontSpec> {
         TraceHelper.beginSection("createFontMap")
 
@@ -85,14 +80,10 @@ class CustomFontManager(private val context: Context) {
         map[FONT_SMARTSPACE_TEXT] = FontSpec(smartspaceTextFont, sansSerif)
         map[FONT_BASE_ICON] = FontSpec(FontCache.DummyFont(), sansSerifCondensed)
         map[FONT_WORKSPACE_ICON] = FontSpec(workspaceFont, sansSerifCondensed)
-        map[FONT_ALL_APPS_ICON] = FontSpec(allAppsFont, sansSerifCondensed)
         map[FONT_FOLDER_ICON] = FontSpec(folderFont, sansSerifCondensed)
-        map[FONT_ACTION_VIEW] = FontSpec(actionFont, sansSerifCondensed)
         map[FONT_DEEP_SHORTCUT] = FontSpec(deepShortcutFont, sansSerif)
         map[FONT_SYSTEM_SHORTCUT] = FontSpec(systemShortcutFont, sansSerif)
         map[FONT_TASK_OPTION] = FontSpec(taskOptionFont, sansSerif)
-        map[FONT_DRAWER_TAB] = FontSpec(drawerTab, sansSerifMedium)
-        map[FONT_DRAWER_FOLDER] = FontSpec(drawerFolderFont, sansSerifCondensed)
 
         TraceHelper.endSection("createFontMap")
         return map
@@ -213,14 +204,10 @@ class CustomFontManager(private val context: Context) {
         const val FONT_SMARTSPACE_TEXT = 8
         const val FONT_BASE_ICON = 9
         const val FONT_WORKSPACE_ICON = 10
-        const val FONT_ALL_APPS_ICON = 11
         const val FONT_FOLDER_ICON = 12
-        const val FONT_ACTION_VIEW = 13
         const val FONT_DEEP_SHORTCUT = 14
         const val FONT_SYSTEM_SHORTCUT = 15
         const val FONT_TASK_OPTION = 16
-        const val FONT_DRAWER_TAB = 17
-        const val FONT_DRAWER_FOLDER = 18
 
         const val VARIANT_MEDIUM = "500"
     }

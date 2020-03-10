@@ -16,6 +16,7 @@
 package com.android.launcher3.allapps;
 
 import static android.view.View.MeasureSpec.UNSPECIFIED;
+import static com.android.launcher3.LauncherState.NORMAL;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -31,14 +32,10 @@ import ch.deletescape.lawnchair.colors.ColorEngine.ColorResolver;
 import ch.deletescape.lawnchair.colors.ColorEngine.ResolveInfo;
 import com.android.launcher3.BaseRecyclerView;
 import com.android.launcher3.DeviceProfile;
-import com.android.launcher3.ItemInfo;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.R;
 import com.android.launcher3.graphics.DrawableFactory;
-import com.android.launcher3.logging.UserEventDispatcher.LogContainerProvider;
-import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
-import com.android.launcher3.userevent.nano.LauncherLogProto.Target;
 import com.android.launcher3.views.RecyclerViewFastScroller;
 
 import java.util.List;
@@ -47,10 +44,9 @@ import org.jetbrains.annotations.NotNull;
 /**
  * A RecyclerView with custom fast scroll support for the all apps view.
  */
-public class AllAppsRecyclerView extends BaseRecyclerView implements LogContainerProvider {
+public class AllAppsRecyclerView extends BaseRecyclerView {
 
     private AlphabeticalAppsList mApps;
-    private AllAppsFastScrollHelper mFastScrollHelper;
     private final int mNumAppsPerRow;
 
     // The specific view heights that we use to calculate scroll
@@ -60,8 +56,6 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
     // The empty-search result background
     private AllAppsBackgroundDrawable mEmptySearchBackground;
     private int mEmptySearchBackgroundTopOffset;
-
-    private float mSpringShift;
 
     public AllAppsRecyclerView(Context context) {
         this(context, null);
@@ -84,12 +78,37 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
         mNumAppsPerRow = LauncherAppState.getIDP(context).numColsDrawer;
     }
 
+    private float oldY;
+    static final int MIN_DISTANCE = 150;
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch(event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+                oldY = event.getY();
+                break;
+            case MotionEvent.ACTION_UP:
+                float deltaY = event.getY() - oldY;
+                if (Math.abs(deltaY) > MIN_DISTANCE) {
+                    Launcher.getLauncher(getContext()).getStateManager().goToState(NORMAL);
+                    return true;
+                }
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean canScrollVertically(int direction) {
+        //Similarly you can customize "canScrollHorizontally()" for managing horizontal scroll
+        return false;
+    }
+
     /**
      * Sets the list of apps in this view, used to determine the fastscroll position.
      */
-    public void setApps(AlphabeticalAppsList apps, boolean usingTabs) {
+    public void setApps(AlphabeticalAppsList apps) {
         mApps = apps;
-        mFastScrollHelper = new AllAppsFastScrollHelper(this, apps);
     }
 
     public AlphabeticalAppsList getApps() {
@@ -99,15 +118,13 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
     private void updatePoolSize() {
         DeviceProfile grid = Launcher.getLauncher(getContext()).getDeviceProfile();
         RecyclerView.RecycledViewPool pool = getRecycledViewPool();
-        int approxRows = (int) Math.ceil(grid.availableHeightPx / grid.allAppsIconSizePx);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_EMPTY_SEARCH, 1);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ALL_APPS_DIVIDER, 1);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_SEARCH_MARKET, 1);
-        pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ICON, approxRows * mNumAppsPerRow);
+        pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ICON, mNumAppsPerRow);
 
         mViewHeights.clear();
-        mViewHeights.put(AllAppsGridAdapter.VIEW_TYPE_ICON, grid.allAppsCellHeightPx);
-        mViewHeights.put(AllAppsGridAdapter.VIEW_TYPE_FOLDER, grid.allAppsCellHeightPx);
+        mViewHeights.put(AllAppsGridAdapter.VIEW_TYPE_ICON, grid.cellHeightPx);
     }
 
     /**
@@ -140,15 +157,6 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         updateEmptySearchBackgroundBounds();
         updatePoolSize();
-    }
-
-    @Override
-    public void fillInLogContainerData(View v, ItemInfo info, Target target, Target targetParent) {
-        if (mApps.hasFilter()) {
-            targetParent.containerType = ContainerType.SEARCHRESULT;
-        } else {
-            targetParent.containerType = ContainerType.ALLAPPS;
-        }
     }
 
     public void onSearchResultsChanged() {
@@ -186,37 +194,37 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
      */
     @Override
     public PositionThumbInfo scrollToPositionAtProgress(float touchFraction) {
-        int rowCount = mApps.getNumAppRows();
-        if (rowCount == 0) {
-            return new PositionThumbInfo("", 0);
-        }
-
-        // Stop the scroller if it is scrolling
-        stopScroll();
-
-        // Find the fastscroll section that maps to this touch fraction
-        List<AlphabeticalAppsList.FastScrollSectionInfo> fastScrollSections =
-                mApps.getFastScrollerSections();
-        AlphabeticalAppsList.FastScrollSectionInfo lastInfo = fastScrollSections.get(0);
-        for (int i = 1; i < fastScrollSections.size(); i++) {
-            AlphabeticalAppsList.FastScrollSectionInfo info = fastScrollSections.get(i);
-            if (info.touchFraction > touchFraction) {
-                break;
-            }
-            lastInfo = info;
-        }
-
-        // Update the fast scroll
-        int scrollY = getCurrentScrollY();
-        int availableScrollHeight = getAvailableScrollHeight();
-        mFastScrollHelper.smoothScrollToSection(scrollY, availableScrollHeight, lastInfo);
-        return new PositionThumbInfo(lastInfo.sectionName, lastInfo.color);
+//        int rowCount = mApps.getNumAppRows();
+//        if (rowCount == 0) {
+//            return new PositionThumbInfo("", 0);
+//        }
+//
+//        // Stop the scroller if it is scrolling
+//        stopScroll();
+//
+//        // Find the fastscroll section that maps to this touch fraction
+//        List<AlphabeticalAppsList.FastScrollSectionInfo> fastScrollSections =
+//                mApps.getFastScrollerSections();
+//        AlphabeticalAppsList.FastScrollSectionInfo lastInfo = fastScrollSections.get(0);
+//        for (int i = 1; i < fastScrollSections.size(); i++) {
+//            AlphabeticalAppsList.FastScrollSectionInfo info = fastScrollSections.get(i);
+//            if (info.touchFraction > touchFraction) {
+//                break;
+//            }
+//            lastInfo = info;
+//        }
+//
+//        // Update the fast scroll
+//        int scrollY = getCurrentScrollY();
+//        int availableScrollHeight = getAvailableScrollHeight();
+//        mFastScrollHelper.smoothScrollToSection(scrollY, availableScrollHeight, lastInfo);
+//        return new PositionThumbInfo(lastInfo.sectionName, lastInfo.color);
+        return new PositionThumbInfo("", 0);
     }
 
     @Override
     public void onFastScrollCompleted() {
         super.onFastScrollCompleted();
-        mFastScrollHelper.onFastScrollCompleted();
     }
 
     @Override
@@ -227,7 +235,6 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
                 mCachedScrollPositions.clear();
             }
         });
-        mFastScrollHelper.onSetAdapter((AllAppsGridAdapter) adapter);
     }
 
     @Override

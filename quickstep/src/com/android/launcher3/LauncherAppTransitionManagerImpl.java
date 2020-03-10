@@ -21,12 +21,9 @@ import static com.android.launcher3.BaseActivity.INVISIBLE_BY_APP_TRANSITIONS;
 import static com.android.launcher3.BaseActivity.INVISIBLE_BY_PENDING_FLAGS;
 import static com.android.launcher3.BaseActivity.PENDING_INVISIBLE_BY_WALLPAPER_ANIMATION;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY;
-import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.Utilities.postAsyncCallback;
-import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS_PROGRESS;
-import static com.android.launcher3.allapps.AllAppsTransitionController.SCRIM_PROGRESS;
 import static com.android.launcher3.anim.Interpolators.AGGRESSIVE_EASE;
 import static com.android.launcher3.anim.Interpolators.AGGRESSIVE_EASE_REVERSED;
 import static com.android.launcher3.anim.Interpolators.AGGRESSIVE_EASE_REVERSED2;
@@ -63,7 +60,6 @@ import ch.deletescape.lawnchair.util.InvertedMultiValueAlpha;
 import ch.deletescape.lawnchair.views.LawnchairBackgroundView;
 import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
 import com.android.launcher3.InsettableFrameLayout.LayoutParams;
-import com.android.launcher3.allapps.AllAppsTransitionController;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.Interpolators;
 import com.android.launcher3.dragndrop.DragLayer;
@@ -363,45 +359,7 @@ public class LauncherAppTransitionManagerImpl extends LauncherAppTransitionManag
                 ? new float[] {0, 1}
                 : new float[] {1, 0};
 
-        if (mLauncher.isInState(ALL_APPS)) {
-            // All Apps in portrait mode is full screen, so we only animate AllAppsContainerView.
-            final View appsView = mLauncher.getAppsView();
-            final float startAlpha = appsView.getAlpha();
-            final float startY = appsView.getTranslationY();
-            appsView.setAlpha(alphas[0]);
-            appsView.setTranslationY(trans[0]);
-
-            ObjectAnimator alpha = ObjectAnimator.ofFloat(appsView, View.ALPHA, alphas);
-            alpha.setDuration(217);
-            alpha.setInterpolator(LINEAR);
-            appsView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-            alpha.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    appsView.setLayerType(View.LAYER_TYPE_NONE, null);
-                }
-            });
-            launcherAnimator.play(alpha);
-
-            ObjectAnimator transY = ObjectAnimator.ofFloat(appsView, View.TRANSLATION_Y, trans);
-            transY.setInterpolator(AGGRESSIVE_EASE);
-            transY.setDuration(350);
-            launcherAnimator.play(transY);
-
-            endListener = () -> {
-                appsView.setAlpha(startAlpha);
-                appsView.setTranslationY(startY);
-                appsView.setScaleX(1f);
-                appsView.setScaleY(1f);
-                appsView.setLayerType(View.LAYER_TYPE_NONE, null);
-            };
-        } else if (mLauncher.isInState(OVERVIEW)) {
-            AllAppsTransitionController allAppsController = mLauncher.getAllAppsController();
-            launcherAnimator.play(ObjectAnimator.ofFloat(allAppsController, ALL_APPS_PROGRESS,
-                    allAppsController.getProgress(), ALL_APPS_PROGRESS_OFF_SCREEN));
-            launcherAnimator.play(ObjectAnimator.ofFloat(allAppsController, SCRIM_PROGRESS,
-                    allAppsController.getScrimProgress(), ALL_APPS_PROGRESS_OFF_SCREEN));
-
+        if (mLauncher.isInState(OVERVIEW)) {
             RecentsView overview = mLauncher.getOverviewPanel();
             ObjectAnimator alpha = ObjectAnimator.ofFloat(overview,
                     RecentsView.CONTENT_ALPHA, alphas);
@@ -439,8 +397,6 @@ public class LauncherAppTransitionManagerImpl extends LauncherAppTransitionManag
             launcherAnimator.play(blurAlpha);
 
             mDragLayer.getScrim().hideSysUiScrim(true);
-            // Pause page indicator animations as they lead to layer trashing.
-            mLauncher.getWorkspace().getPageIndicator().pauseAnimations();
             mDragLayer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
             endListener = this::resetContentView;
@@ -470,12 +426,6 @@ public class LauncherAppTransitionManagerImpl extends LauncherAppTransitionManag
             // Create a copy of the app icon
             mFloatingView.setBackground(
                     DrawableFactory.get(mLauncher).newIcon((ItemInfoWithIcon) v.getTag()));
-        } else if (v.getTag() instanceof FolderInfo) {
-            FolderInfo folderInfo = (FolderInfo) v.getTag();
-            if (folderInfo.isCoverMode()) {
-                mFloatingView.setBackground(
-                        DrawableFactory.get(mLauncher).newIcon(folderInfo.getCoverInfo()));
-            }
         }
 
         // Position the floating view exactly on top of the original
@@ -856,56 +806,40 @@ public class LauncherAppTransitionManagerImpl extends LauncherAppTransitionManag
      * Creates an animator that modifies Launcher as a result from {@link #getWallpaperOpenRunner}.
      */
     protected void createLauncherResumeAnimation(AnimatorSet anim) {
-        if (mLauncher.isInState(LauncherState.ALL_APPS)) {
-            Pair<AnimatorSet, Runnable> contentAnimator =
-                    getLauncherContentAnimator(false /* isAppOpening */);
-            contentAnimator.first.setStartDelay(LAUNCHER_RESUME_START_DELAY);
-            anim.play(contentAnimator.first);
-            anim.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    contentAnimator.second.run();
-                }
-            });
-        } else {
-            AnimatorSet workspaceAnimator = new AnimatorSet();
+        AnimatorSet workspaceAnimator = new AnimatorSet();
 
-            mDragLayer.setTranslationY(-mWorkspaceTransY);
-            workspaceAnimator.play(ObjectAnimator.ofFloat(mDragLayer, View.TRANSLATION_Y,
-                    -mWorkspaceTransY, 0));
+        mDragLayer.setTranslationY(-mWorkspaceTransY);
+        workspaceAnimator.play(ObjectAnimator.ofFloat(mDragLayer, View.TRANSLATION_Y,
+                -mWorkspaceTransY, 0));
 
-            mDragLayerAlpha.setValue(0);
-            workspaceAnimator.play(ObjectAnimator.ofFloat(
-                    mDragLayerAlpha, MultiValueAlpha.VALUE, 0, 1f));
+        mDragLayerAlpha.setValue(0);
+        workspaceAnimator.play(ObjectAnimator.ofFloat(
+                mDragLayerAlpha, MultiValueAlpha.VALUE, 0, 1f));
 
-            workspaceAnimator.setStartDelay(LAUNCHER_RESUME_START_DELAY);
-            workspaceAnimator.setDuration(333);
-            workspaceAnimator.setInterpolator(Interpolators.DEACCEL_1_7);
+        workspaceAnimator.setStartDelay(LAUNCHER_RESUME_START_DELAY);
+        workspaceAnimator.setDuration(333);
+        workspaceAnimator.setInterpolator(Interpolators.DEACCEL_1_7);
 
-            LawnchairBackgroundView background = LawnchairLauncher.getLauncher(mLauncher).getBackground();
-            background.getBlurAlphas().getProperty(LawnchairBackgroundView.ALPHA_INDEX_TRANSITIONS).setValue(1f);
-            workspaceAnimator.play(ObjectAnimator.ofFloat(background.getBlurAlphas().getProperty(
-                    LawnchairBackgroundView.ALPHA_INDEX_TRANSITIONS),
-                    InvertedMultiValueAlpha.VALUE, 1f, 0f));
+        LawnchairBackgroundView background = LawnchairLauncher.getLauncher(mLauncher).getBackground();
+        background.getBlurAlphas().getProperty(LawnchairBackgroundView.ALPHA_INDEX_TRANSITIONS).setValue(1f);
+        workspaceAnimator.play(ObjectAnimator.ofFloat(background.getBlurAlphas().getProperty(
+                LawnchairBackgroundView.ALPHA_INDEX_TRANSITIONS),
+                InvertedMultiValueAlpha.VALUE, 1f, 0f));
 
-            mDragLayer.getScrim().hideSysUiScrim(true);
+        mDragLayer.getScrim().hideSysUiScrim(true);
 
-            // Pause page indicator animations as they lead to layer trashing.
-            mLauncher.getWorkspace().getPageIndicator().pauseAnimations();
-            mDragLayer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        mDragLayer.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
-            workspaceAnimator.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    resetContentView();
-                }
-            });
-            anim.play(workspaceAnimator);
-        }
+        workspaceAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                resetContentView();
+            }
+        });
+        anim.play(workspaceAnimator);
     }
 
     protected void resetContentView() {
-        mLauncher.getWorkspace().getPageIndicator().skipAnimationsToEnd();
         mDragLayerAlpha.setValue(1f);
         mDragLayer.setLayerType(View.LAYER_TYPE_NONE, null);
         mDragLayer.setTranslationY(0f);

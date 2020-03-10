@@ -113,7 +113,7 @@ public class LauncherIcons implements AutoCloseable {
         mContext = context.getApplicationContext();
         mPm = mContext.getPackageManager();
 
-        iconProvider = IconProvider.newInstance(context);
+        iconProvider = LauncherAppState.getInstance(mContext).getIconCache().getIconProvider();
 
         InvariantDeviceProfile idp = LauncherAppState.getIDP(mContext);
         mFillResIconDpi = idp.fillResIconDpi;

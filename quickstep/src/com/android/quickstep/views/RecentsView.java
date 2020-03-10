@@ -832,11 +832,6 @@ public abstract class RecentsView<T extends BaseDraggingActivity> extends PagedV
                             boolean shouldLog) {
         if (task != null) {
             ActivityManagerWrapper.getInstance().removeTask(task.key.id);
-            if (shouldLog) {
-                mActivity.getUserEventDispatcher().logTaskLaunchOrDismiss(
-                        onEndListener.logAction, Direction.UP, index,
-                        TaskUtils.getLaunchComponentKeyForTask(task.key));
-            }
         }
     }
 
@@ -1309,11 +1304,6 @@ public abstract class RecentsView<T extends BaseDraggingActivity> extends PagedV
                 };
                 tv.launchTask(false, onLaunchResult, getHandler());
                 Task task = tv.getTask();
-                if (task != null) {
-                    mActivity.getUserEventDispatcher().logTaskLaunchOrDismiss(
-                            onEndListener.logAction, Direction.DOWN, indexOfChild(tv),
-                            TaskUtils.getLaunchComponentKeyForTask(task.key));
-                }
             } else {
                 onTaskLaunchFinish.accept(false);
             }

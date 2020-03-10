@@ -131,16 +131,7 @@ abstract class BaseWidgetSheet extends AbstractSlideInView
     }
 
     @Override
-    public void fillInLogContainerData(View v, ItemInfo info, Target target, Target targetParent) {
-        targetParent.containerType = ContainerType.WIDGETS;
-        targetParent.cardinality = getElementsRowCount();
-    }
-
-    @Override
     public final void logActionCommand(int command) {
-        Target target = newContainerTarget(ContainerType.WIDGETS);
-        target.cardinality = getElementsRowCount();
-        mLauncher.getUserEventDispatcher().logActionCommand(command, target);
     }
 
     protected abstract int getElementsRowCount();

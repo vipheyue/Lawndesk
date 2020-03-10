@@ -29,12 +29,10 @@ import ch.deletescape.lawnchair.bugreport.BugReportClient
 import ch.deletescape.lawnchair.colors.ColorEngine
 import ch.deletescape.lawnchair.gestures.BlankGestureHandler
 import ch.deletescape.lawnchair.gestures.handlers.*
+import ch.deletescape.lawnchair.globalsearch.ExternalSearchProviderController
 import ch.deletescape.lawnchair.globalsearch.SearchProviderController
-import ch.deletescape.lawnchair.groups.AppGroupsManager
-import ch.deletescape.lawnchair.groups.DrawerTabs
 import ch.deletescape.lawnchair.iconpack.IconPackManager
 import ch.deletescape.lawnchair.preferences.DockStyle
-import ch.deletescape.lawnchair.sesame.Sesame
 import ch.deletescape.lawnchair.settings.GridSize
 import ch.deletescape.lawnchair.settings.GridSize2D
 import ch.deletescape.lawnchair.settings.ui.SettingsActivity
@@ -46,7 +44,6 @@ import com.android.launcher3.*
 import com.android.launcher3.allapps.search.DefaultAppSearchAlgorithm
 import com.android.launcher3.util.ComponentKey
 import com.android.quickstep.OverviewInteractionState
-import com.google.android.apps.nexuslauncher.allapps.PredictionsFloatingHeader
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -107,8 +104,7 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     var migratedFrom1 by BooleanPref("pref_legacyUpgrade", false)
 
     // Blur
-    var enableBlur by BooleanPref("pref_enableBlur", lawnchairConfig.defaultEnableBlur, updateBlur)
-    val enableVibrancy = true
+    var enableBlur by BooleanPref("pref_enableBlur", true, updateBlur)
     val blurRadius by FloatPref("pref_blurRadius", lawnchairConfig.defaultBlurStrength, updateBlur)
 
     // Theme
@@ -125,29 +121,30 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     val hideStatusBar by BooleanPref("pref_hideStatusBar", lawnchairConfig.hideStatusBar, doNothing)
     val iconPackMasking by BooleanPref("pref_iconPackMasking", true, reloadIcons)
     val adaptifyIconPacks by BooleanPref("pref_generateAdaptiveForIconPack", false, reloadIcons)
-    var showVoiceSearchIcon by BooleanPref("opa_enabled")
-    var showAssistantIcon by BooleanPref("opa_assistant")
     val displayNotificationCount by BooleanPref("pref_displayNotificationCount", false, reloadAll)
 
     // Desktop
     val allowFullWidthWidgets by BooleanPref("pref_fullWidthWidgets", false, restart)
     private var gridSizeDelegate = ResettableLazy { GridSize2D(this, "numRows", "numColumns", LauncherAppState.getIDP(context), restart) }
     val gridSize by gridSizeDelegate
+    private var folderGridSizeDelegate = ResettableLazy { GridSize2D(this, "numFolderRows", "numFolderColumns", LauncherAppState.getIDP(context), restart) }
+    val folderGridSize by folderGridSizeDelegate
     val hideAppLabels by BooleanPref("pref_hideAppLabels", false, recreate)
     val showTopShadow by BooleanPref("pref_showTopShadow", true, recreate) // TODO: update the scrim instead of doing this
-    var autoAddInstalled by BooleanPref("pref_add_icon_to_home", true, doNothing)
-    private val homeMultilineLabel by BooleanPref("pref_homeIconLabelsInTwoLines", false, recreate)
+    private val homeMultilineLabel by BooleanPref("pref_homeIconLabelsInTwoLines", true, recreate)
     val homeLabelRows get() = if(homeMultilineLabel) 2 else 1
     val allowOverlap by BooleanPref(SettingsActivity.ALLOW_OVERLAP_PREF, false, reloadAll)
     val desktopTextScale by FloatPref("pref_iconTextScaleSB", 1f, reloadAll)
     val centerWallpaper by BooleanPref("pref_centerWallpaper")
     val lockDesktop by BooleanPref("pref_lockDesktop", false, reloadAll)
     val usePopupMenuView by BooleanPref("pref_desktopUsePopupMenuView", true, doNothing)
+    val disableAutoFill by BooleanPref("pref_disableAutoFill")
+    var folderIconScale by FloatPref("pref_folderIconScale", -1f, recreate)
 
     // Smartspace
     val enableSmartspace by BooleanPref("pref_smartspace", lawnchairConfig.enableSmartspace)
-    val smartspaceTime by BooleanPref("pref_smartspace_time", false, refreshGrid)
-    val smartspaceTimeAbove by BooleanPref("pref_smartspace_time_above", false, refreshGrid)
+    val smartspaceTime by BooleanPref("pref_smartspace_time", true, refreshGrid)
+    val smartspaceTimeAbove by BooleanPref("pref_smartspace_time_above", true, refreshGrid)
     val smartspaceTime24H by BooleanPref("pref_smartspace_time_24_h", false, refreshGrid)
     val smartspaceDate by BooleanPref("pref_smartspace_date", true, refreshGrid)
     var smartspaceWidgetId by IntPref("smartspace_widget_id", -1, doNothing)
@@ -170,17 +167,7 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
 
     // Dock
     val dockStyles = DockStyle.StyleManager(this, reloadDockStyle, resetAllApps)
-    val dockColoredGoogle by BooleanPref("pref_dockColoredGoogle", true, doNothing)
-    var dockSearchBarPref by BooleanPref(
-            "pref_dockSearchBar", Utilities.ATLEAST_MARSHMALLOW, recreate
-                                        )
-    inline val dockSearchBar get() = !dockHide && dockSearchBarPref
-    val dockRadius get() = dockStyles.currentStyle.radius
-    val dockShadow get() = dockStyles.currentStyle.enableShadow
-    val dockShowArrow get() = dockStyles.currentStyle.enableArrow
-    val dockOpacity get() = dockStyles.currentStyle.opacity
     val dockShowPageIndicator by BooleanPref("pref_hotseatShowPageIndicator", true, { onChangeCallback?.updatePageIndicator() })
-    val dockGradientStyle get() = dockStyles.currentStyle.enableGradient
     val dockHide get() = dockStyles.currentStyle.hide
     private val dockGridSizeDelegate = ResettableLazy { GridSize(this, "numHotseatIcons", LauncherAppState.getIDP(context), restart) }
     val dockGridSize by dockGridSizeDelegate
@@ -191,35 +178,6 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     val dockTextScale by FloatPref("pref_dockTextScale", -1f, restart)
     private val dockMultilineLabel by BooleanPref("pref_dockIconLabelsInTwoLines", false, recreate)
     val dockLabelRows get() = if(dockMultilineLabel) 2 else 1
-
-    // Drawer
-    val hideAllAppsAppLabels by BooleanPref("pref_hideAllAppsAppLabels", false, recreate)
-    val allAppsOpacity by AlphaPref("pref_allAppsOpacitySB", -1, recreate)
-    val allAppsStartAlpha get() = dockStyles.currentStyle.opacity
-    val allAppsEndAlpha get() = allAppsOpacity
-    val allAppsSearch by BooleanPref("pref_allAppsSearch", true, recreate)
-    var allAppsGlobalSearch by BooleanPref("pref_allAppsGoogleSearch", true, doNothing)
-    val showAllAppsLabel by BooleanPref("pref_showAllAppsLabel", false) {
-        val header = onChangeCallback?.launcher?.appsView?.floatingHeaderView as? PredictionsFloatingHeader
-        header?.updateShowAllAppsLabel()
-    }
-    val separateWorkApps by BooleanPref("pref_separateWorkApps", true, recreate)
-    val saveScrollPosition by BooleanPref("pref_keepScrollState", false, doNothing)
-    private val drawerGridSizeDelegate = ResettableLazy { GridSize(this, "numColsDrawer", LauncherAppState.getIDP(context), recreate) }
-    val drawerGridSize by drawerGridSizeDelegate
-    private val predictionGridSizeDelegate = ResettableLazy { GridSize(this, "numPredictions", LauncherAppState.getIDP(context), recreate) }
-    val predictionGridSize by predictionGridSizeDelegate
-    val drawerPaddingScale by FloatPref("pref_allAppsPaddingScale", 1.0f, recreate)
-    val showPredictions by BooleanPref("pref_show_predictions", true, doNothing)
-    private val drawerMultilineLabel by BooleanPref("pref_iconLabelsInTwoLines", false, recreate)
-    val drawerLabelRows get() = if(drawerMultilineLabel) 2 else 1
-    val appGroupsManager by lazy { AppGroupsManager(this) }
-    val drawerTabs get() = appGroupsManager.drawerTabs
-    val currentTabsModel get() = appGroupsManager.getEnabledModel() as? DrawerTabs ?: appGroupsManager.drawerTabs
-    val showActions by BooleanPref("pref_show_suggested_actions", true, doNothing)
-    val sortDrawerByColors by BooleanPref("pref_allAppsColorSorted", false, reloadAll)
-    val drawerTextScale by FloatPref("pref_allAppsIconTextScale", 1f, recreate)
-    val searchHiddenApps by BooleanPref(DefaultAppSearchAlgorithm.SEARCH_HIDDEN_APPS, false)
 
     // Dev
     var developerOptionsEnabled by BooleanPref("pref_showDevOptions", false, doNothing)
@@ -245,7 +203,7 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     val folderBgColored by BooleanPref("pref_folderBgColorGen", false)
     val brightnessTheme by BooleanPref("pref_brightnessTheme", false, restart)
     val debugOkHttp by BooleanPref("pref_debugOkhttp", onChange = restart)
-    val initLeakCanary by BooleanPref("pref_initLeakCanary", true, restart)
+    val initLeakCanary by BooleanPref("pref_initLeakCanary", false, restart)
     val showCrashNotifications by BooleanPref("pref_showCrashNotifications", true, restart)
     val autoUploadBugReport by BooleanPref("pref_autoUploadBugReport", false) {
         if (showCrashNotifications) {
@@ -259,10 +217,14 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     var searchProvider by StringPref("pref_globalSearchProvider", lawnchairConfig.defaultSearchProvider) {
         SearchProviderController.getInstance(context).onSearchProviderChanged()
     }
-    val dualBubbleSearch by BooleanPref("pref_bubbleSearchStyle", false, doNothing)
+    var externalSearchProvider by StringPref("pref_externalSearchProvider", lawnchairConfig.defaultExternalSearchProvider) {
+        ExternalSearchProviderController.getInstance(context).onExternalSearchProviderChanged()
+    }
     // This purely exists to abuse preference change listeners, the value is never actually read.
-    var sesameIconColor by IntPref("pref_sesameIconColor", -1)
     var searchBarRadius by DimensionPref("pref_searchbarRadius", -1f)
+    val searchHiddenApps by BooleanPref("pref_search_hidden_apps", false)
+    val allAppsSearch by BooleanPref("pref_allAppsSearch", true, recreate)
+    var allAppsGlobalSearch by BooleanPref("pref_allAppsGoogleSearch", true, doNothing)
 
     // Quickstep
     var swipeUpToSwitchApps by BooleanPref("pref_swipe_up_to_switch_apps_enabled", true, doNothing)
@@ -274,16 +236,12 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
         onChangeCallback?.launcher?.background?.onEnabledChanged()
     }
 
-    // Integrations
-    var syncLookNFeelWithSesame by BooleanPref("pref_sesame_sync_icon_pack", true) {
-        Sesame.setupSync(context)
-    }
-
     // Misc
     var autoLaunchRoot by BooleanPref("internal_auto_launch_root")
     var noFools by BooleanPref("pref_noFools2019", false) { Utilities.restartLauncher(context) }
     val enableFools get() = forceEnableFools || is1stApril()
     val showFools get() = !noFools && enableFools
+    var desktopInitialized by BooleanPref("flag_desktop_initiated", false)
 
     private val was1stApril = is1stApril()
 
@@ -301,8 +259,6 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     }
 
     var hiddenAppSet by StringSetPref("hidden-app-set", Collections.emptySet(), reloadApps)
-    var hiddenPredictionAppSet by StringSetPref("pref_hidden_prediction_set", Collections.emptySet(), doNothing)
-    var hiddenPredictActionSet by StringSetPref(SettingsActivity.HIDDEN_ACTIONS_PREF, Collections.emptySet(), doNothing)
     val customAppName = object : MutableMapPref<ComponentKey, String>("pref_appNameMap", reloadAll) {
         override fun flattenKey(key: ComponentKey) = key.toString()
         override fun unflattenKey(key: String) = ComponentKey(context, key)
@@ -318,6 +274,11 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     val recentBackups = object : MutableListPref<Uri>(
             Utilities.getDevicePrefs(context), "pref_recentBackups") {
         override fun unflattenValue(value: String) = Uri.parse(value)
+    }
+
+    val recentLaunchedApps = object : MutableListPref<ComponentKey>(
+            Utilities.getDevicePrefs(context), "pref_recentLaunchedApps") {
+        override fun unflattenValue(value: String) = ComponentKey(context, value)
     }
 
     inline fun withChangeCallback(
@@ -844,7 +805,7 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     }
 
     init {
-        d("Initializing", Throwable())
+//        d("Initializing", Throwable())
     }
 
     fun migrateConfig(prefs: SharedPreferences) {
@@ -866,83 +827,7 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
     private fun migrateFromV1(editor: SharedPreferences.Editor, prefs: SharedPreferences) = with(
             editor
                                                                                                 ) {
-        // Set flags
-        putBoolean("pref_legacyUpgrade", true)
-        putBoolean("pref_restoreSuccess", false)
-        // Reset icon shape to system shape
-        // TODO: possibly create some sort of migration shape which uses a path stored in another pref
-        // TODO: where we would move the current value of this to
-        putString("pref_iconShape", "")
 
-        // Dt2s
-        putString("pref_gesture_double_tap",
-                  when (prefs.getString("pref_dt2sHandler", "")) {
-                      "" -> BlankGestureHandler(context, null)
-                      "ch.deletescape.lawnchair.gestures.dt2s.DoubleTapGesture\$SleepGestureHandlerTimeout" ->
-                          SleepGestureHandlerTimeout(context, null)
-                      else -> SleepGestureHandler(context, null)
-                  }.toString())
-
-        // Dock
-        putString("pref_dockPreset", "0")
-        putBoolean("pref_dockShadow", false)
-        putBoolean("pref_hotseatShowArrow", prefs.getBoolean("pref_hotseatShowArrow", true))
-        putFloat("pref_dockRadius", 0f)
-        putBoolean("pref_dockGradient", prefs.getBoolean("pref_isHotseatTransparent", false))
-        if (!prefs.getBoolean("pref_hotseatShouldUseCustomOpacity", false)) {
-            putFloat("pref_hotseatCustomOpacity", -1f / 255)
-        }
-        putFloat("pref_dockScale", prefs.getFloat("pref_hotseatHeightScale", 1f))
-
-        // Home widget
-        val pillQsb = prefs.getBoolean("pref_showPixelBar", true)
-                      // The new dock qsb should be close enough I guess
-                      && !prefs.getBoolean("pref_fullWidthSearchbar", false);
-        putBoolean("pref_use_pill_qsb", pillQsb)
-        if (pillQsb) {
-            putBoolean("pref_dockSearchBar", false)
-        }
-        if (!prefs.getBoolean("pref_showDateOrWeather", true)) {
-            putString("pref_smartspace_widget_provider", BlankDataProvider::class.java.name)
-        }
-        val showAssistant = prefs.getBoolean("pref_showMic", false)
-        putBoolean("opa_enabled", showAssistant)
-        putBoolean("opa_assistant", showAssistant)
-
-        // Colors
-        if (prefs.contains("pref_workspaceLabelColor")) {
-            val color = prefs.getInt("pref_workspaceLabelColor", Color.WHITE)
-            ColorEngine.setColor(this, ColorEngine.Resolvers.WORKSPACE_ICON_LABEL, color)
-            ColorEngine.setColor(this, ColorEngine.Resolvers.ALLAPPS_ICON_LABEL, color)
-        }
-
-        // Theme
-        putString("pref_launcherTheme",
-                  when (prefs.getString("pref_theme", "0")) {
-                      "1" -> ThemeManager.THEME_DARK
-                      "2" -> ThemeManager.THEME_USE_BLACK or ThemeManager.THEME_DARK
-                      else -> 0
-                  }.toString())
-        putString("pref_icon_pack", prefs.getString("pref_iconPackPackage", ""))
-
-        // Gestures
-        putString("pref_gesture_swipe_down",
-                  when (Integer.parseInt(prefs.getString("pref_pulldownAction", "1"))) {
-                      1 -> NotificationsOpenGestureHandler(context, null)
-                      2 -> StartGlobalSearchGestureHandler(context, null)
-                      3 -> StartAppSearchGestureHandler(context, null)
-                      else -> BlankGestureHandler(context, null)
-                  }.toString())
-        if (prefs.getBoolean("pref_homeOpensDrawer", false)) {
-            putString("pref_gesture_press_home",
-                      OpenDrawerGestureHandler(context, null).toString())
-        }
-
-        // misc
-        putBoolean("pref_add_icon_to_home", prefs.getBoolean("pref_autoAddShortcuts", true))
-
-        // Disable some newer features per default
-        putBoolean("pref_allAppsGoogleSearch", false)
     }
 
     interface OnPreferenceChangeListener {
@@ -986,8 +871,6 @@ class LawnchairPreferences(val context: Context) : SharedPreferences.OnSharedPre
                 onChangeCallback = null
                 gridSizeDelegate.resetValue()
                 dockGridSizeDelegate.resetValue()
-                drawerGridSizeDelegate.resetValue()
-                predictionGridSizeDelegate.resetValue()
             }
         }
     }

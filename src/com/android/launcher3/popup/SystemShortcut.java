@@ -87,8 +87,6 @@ public abstract class SystemShortcut<T extends BaseDraggingActivity> extends Ite
                         (WidgetsBottomSheet) launcher.getLayoutInflater().inflate(
                                 R.layout.widgets_bottom_sheet, launcher.getDragLayer(), false);
                 widgetsBottomSheet.populateAndShow(itemInfo);
-                launcher.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
-                        ControlType.WIDGETS_BUTTON, view);
             };
         }
     }
@@ -113,8 +111,6 @@ public abstract class SystemShortcut<T extends BaseDraggingActivity> extends Ite
                     ((LawnchairAppTransitionManagerImpl) manager).playLaunchAnimation(
                             (Launcher) activity, null, intent);
                 }
-                activity.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
-                        ControlType.APPINFO_TARGET, view);
             };
         }
     }

@@ -8,9 +8,7 @@ import android.widget.Toast;
 
 import com.android.launcher3.BaseActivity;
 import com.android.launcher3.ItemInfo;
-import com.android.launcher3.Launcher;
 import com.android.launcher3.LauncherAppState;
-import com.android.launcher3.LauncherModel;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.compat.LauncherAppsCompat;
@@ -30,8 +28,6 @@ public class AppLaunchActivity extends BaseActivity {
                 }
                 View view = new View(this);
                 view.setTag(dVar);
-                String predictionRank = uri.getQueryParameter("predictionRank");
-                new LogContainerProvider(this, TextUtils.isEmpty(predictionRank) ? -1 : Integer.parseInt(predictionRank)).addView(view);
                 return;
             }
             Toast.makeText(this, R.string.safemode_shortcut_error, Toast.LENGTH_SHORT).show();

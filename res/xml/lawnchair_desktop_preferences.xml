@@ -23,8 +23,34 @@
     </ch.deletescape.lawnchair.preferences.StyledPreferenceCategory>
 
     <ch.deletescape.lawnchair.preferences.StyledPreferenceCategory
+        android:key="prefCat_folder"
+        android:title="@string/pref_category_folder">
+
+        <ch.deletescape.lawnchair.settings.ui.FolderGridSizePreference
+            android:key="pref_folder_grid_size"
+            android:title="@string/folder_grid_size" />
+
+        <ch.deletescape.lawnchair.preferences.SeekbarPreference
+            android:key="pref_folderIconScale"
+            android:title="@string/folder_icon_scale_title"
+            android:persistent="true"
+            app:defaultSeekbarValue="1.0"
+            app:maxValue="1.8"
+            app:minValue="0.3"
+            app:steps="150"
+            app:summaryFormat="%.0f%%"
+            app:summaryMultiplier="100" />
+
+    </ch.deletescape.lawnchair.preferences.StyledPreferenceCategory>
+
+    <ch.deletescape.lawnchair.preferences.StyledPreferenceCategory
         android:key="prefCat_desktopIcons"
         android:title="@string/pref_category_icons">
+
+        <Preference
+            android:key="pref_hiddenApps"
+            android:title="@string/hide_apps"
+            android:fragment="ch.deletescape.lawnchair.preferences.HiddenAppsFragment" />
 
         <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
             android:defaultValue="false"
@@ -36,7 +62,7 @@
         <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
             android:key="pref_homeIconLabelsInTwoLines"
             android:title="@string/pref_mutliline_labels"
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:dependency="pref_hideAppLabels"
             android:persistent="true" />
 
@@ -69,13 +95,6 @@
             app:steps="170"
             app:summaryFormat="%.0f%%"
             app:summaryMultiplier="100" />
-
-        <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
-            android:defaultValue="true"
-            android:key="pref_add_icon_to_home"
-            android:persistent="true"
-            android:title="@string/auto_add_shortcuts_label"
-            app:controllerClass=".AddIconToHomeController"/>
 
         <ch.deletescape.lawnchair.settings.ui.PreferenceDialogPreference
             android:key="pref_iconPopupMenu"
@@ -142,5 +161,11 @@
             android:key="pref_showTopShadow"
             android:persistent="true"
             android:title="@string/show_top_shadow_pref_title" />
+
+        <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="pref_disableAutoFill"
+            android:persistent="true"
+            android:title="@string/disable_auto_fill_title" />
     </ch.deletescape.lawnchair.preferences.StyledPreferenceCategory>
 </android.support.v7.preference.PreferenceScreen>

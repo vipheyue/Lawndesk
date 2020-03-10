@@ -36,11 +36,10 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
-import ch.deletescape.lawnchair.LawnchairUtilsKt;
-import ch.deletescape.lawnchair.blur.BlurWallpaperProvider;
 import com.android.launcher3.compat.LauncherAppsCompat;
 import com.android.launcher3.compat.PackageInstallerCompat.PackageInstallInfo;
 import com.android.launcher3.compat.UserManagerCompat;
+import com.android.launcher3.folder.FolderAddAppItem;
 import com.android.launcher3.graphics.LauncherIcons;
 import com.android.launcher3.model.AddWorkspaceItemsTask;
 import com.android.launcher3.model.BaseModelUpdateTask;
@@ -155,6 +154,7 @@ public class LauncherModel extends BroadcastReceiver
         public void finishFirstPageBind(ViewOnDrawExecutor executor);
         public void finishBindingItems(int pageBoundFirst);
         public void bindAllApplications(ArrayList<AppInfo> apps);
+        public void verifyApplications(ArrayList<AppInfo> apps);
         public void bindAppsAddedOrUpdated(ArrayList<AppInfo> apps);
         public void preAddApps();
         public void bindAppsAdded(ArrayList<Long> newScreens,
@@ -432,13 +432,6 @@ public class LauncherModel extends BroadcastReceiver
         }
     }
 
-    public void forceReloadOnNextLaunch() {
-        synchronized (this.mLock) {
-            stopLoader();
-            mModelLoaded = false;
-        }
-    }
-
     public void forceReload() {
         forceReload(-1);
     }
@@ -449,6 +442,7 @@ public class LauncherModel extends BroadcastReceiver
      * @param synchronousBindPage The page to bind first. Can pass -1 to use the current page.
      */
     public void forceReload(int synchronousBindPage) {
+        Utilities.debugNotification("LauncherModel.forceReload");
         synchronized (mLock) {
             // Stop any existing loaders first, so they don't set mModelLoaded to true later
             stopLoader();
@@ -546,6 +540,16 @@ public class LauncherModel extends BroadcastReceiver
         // Get screens ordered by rank.
         return LauncherDbUtils.getScreenIdsFromCursor(contentResolver.query(
                 screensUri, null, null, null, LauncherSettings.WorkspaceScreens.SCREEN_RANK));
+    }
+
+    public static ArrayList<Long> loadFolderIDsDb(Context context) {
+        final ContentResolver contentResolver = context.getContentResolver();
+        final Uri favoritesUri = LauncherSettings.Favorites.CONTENT_URI;
+
+        return LauncherDbUtils.getFolderIdsFromCursor(contentResolver.query(
+                favoritesUri, null,
+                LauncherSettings.Favorites.ITEM_TYPE + "=" + LauncherSettings.Favorites.ITEM_TYPE_FOLDER, null,
+                null));
     }
 
     public void onInstallSessionCreated(final PackageInstallInfo sessionInfo) {
@@ -745,4 +749,22 @@ public class LauncherModel extends BroadcastReceiver
     public static void setWorkerPriority(final int priority) {
         Process.setThreadPriority(sWorkerThread.getThreadId(), priority);
     }
+
+    public static ArrayList<FolderAddAppItem> getFolderAddAppItems() {
+        ArrayList<FolderAddAppItem> items = new ArrayList<>();
+        synchronized (sBgDataModel) {
+            for (ItemInfo item : sBgDataModel.workspaceItems) {
+                if (item instanceof ShortcutInfo) {
+                    ShortcutInfo shortcut = (ShortcutInfo) item;
+                    if (shortcut.itemType != LauncherSettings.Favorites.ITEM_TYPE_APPLICATION ||
+                            shortcut.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                        continue;
+                    }
+                    items.add(new FolderAddAppItem((ShortcutInfo) item));
+                }
+            }
+        }
+        return items;
+    }
+
 }

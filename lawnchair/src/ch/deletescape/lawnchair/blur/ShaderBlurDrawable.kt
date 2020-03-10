@@ -80,7 +80,7 @@ class ShaderBlurDrawable internal constructor(
         }
 
     override fun draw(canvas: Canvas, noRadius: Boolean) {
-        if (blurAlpha == 0) return
+        if (blurAlpha == 0 || blurProvider.wallpaper == null) return
         blurBitmap = blurProvider.wallpaper
         setupBlurPath()
 

@@ -95,12 +95,6 @@ class VerticalSwipeGestureController(private val launcher: Launcher) : TouchCont
                 launcher.isInState(LauncherState.NORMAL)
     }
 
-    private fun isOverHotseat(ev: MotionEvent): Boolean {
-        val dp = launcher.deviceProfile
-        val hotseatHeight = dp.hotseatBarSizePx + dp.insets.bottom
-        return ev.y >= launcher.dragLayer.height - hotseatHeight
-    }
-
     private fun getSwipeDirection(ev: MotionEvent): Int {
         return when {
             controller.getSwipeUpOverride(ev.downTime) != null -> {
@@ -109,8 +103,7 @@ class VerticalSwipeGestureController(private val launcher: Launcher) : TouchCont
                 else
                     SwipeDetector.DIRECTION_POSITIVE
             }
-            gesture.customSwipeUp && !isOverHotseat(ev) -> SwipeDetector.DIRECTION_BOTH
-            gesture.customDockSwipeUp && isOverHotseat(ev) -> SwipeDetector.DIRECTION_BOTH
+            gesture.customSwipeUp -> SwipeDetector.DIRECTION_BOTH
             else -> SwipeDetector.DIRECTION_NEGATIVE
         }
     }
@@ -150,9 +143,6 @@ class VerticalSwipeGestureController(private val launcher: Launcher) : TouchCont
                 } ?: if (gesture.customSwipeUp) {
                     state = GestureState.Triggered
                     gesture.onSwipeUp()
-                } else if (gesture.customDockSwipeUp) {
-                    state = GestureState.Triggered
-                    gesture.onDockSwipeUp()
                 }
             }
         }

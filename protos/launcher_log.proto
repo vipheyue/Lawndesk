@@ -79,7 +79,7 @@ enum ContainerType {
   WORKSPACE = 1;
   HOTSEAT = 2;
   FOLDER = 3;
-  ALLAPPS = 4;
+  SEARCH = 4;
   WIDGETS = 5;
   OVERVIEW = 6;   // Zoomed out workspace (without QuickStep)
   PREDICTION = 7;

@@ -25,14 +25,14 @@
         <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
             android:key="pref_smartspace_time"
             android:title="@string/smartspace_time"
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:dependency="pref_use_pill_qsb"
             />
 
         <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
             android:key="pref_smartspace_time_above"
             android:title="@string/pref_smartspace_time_above"
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:dependency="pref_smartspace_time"
             />
 
@@ -108,5 +108,10 @@
             android:dependency="pref_use_pill_qsb"
             android:title="@string/pref_smartspace_event_providers"
             />
+
+        <Preference
+            android:key="download_oneplus_weather"
+            android:title="@string/download_oneplus_weather"
+            android:summary="@string/supported_weather_source" />
     </ch.deletescape.lawnchair.preferences.StyledPreferenceCategory>
 </android.support.v7.preference.PreferenceScreen>

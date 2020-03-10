@@ -89,6 +89,7 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
 
     @Override
     public void execute(LauncherAppState app, BgDataModel dataModel, AllAppsList appsList) {
+        Utilities.debugNotification("PackageUpdatedTask, op: " + mOp + ", packages: " + Arrays. toString(mPackages));
         final Context context = app.getContext();
         final IconCache iconCache = app.getIconCache();
 
@@ -107,11 +108,7 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
                         appsList.removePackage(packages[i], Process.myUserHandle());
                     }
                     appsList.addPackage(context, packages[i], mUser);
-                    if (Utilities.ATLEAST_OREO && prefs.getAutoAddInstalled() &&
-                            !LawnchairUtilsKt.workspaceContains(dataModel, packages[i])) {
-                        SessionCommitReceiver.queueAppIconAddition(context, packages[i], mUser);
-                    } else if (!Utilities.ATLEAST_OREO && !Process.myUserHandle().equals(mUser)) {
-                        // Automatically add homescreen icon for work profile apps for below O device.
+                    if (!LawnchairUtilsKt.workspaceContains(dataModel, packages[i], Process.myUserHandle())) {
                         SessionCommitReceiver.queueAppIconAddition(context, packages[i], mUser);
                     }
                 }
@@ -165,7 +162,9 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
         }
 
         final ArrayList<AppInfo> addedOrModified = new ArrayList<>();
+        final ArrayList<AppInfo> added = new ArrayList<>();
         addedOrModified.addAll(appsList.added);
+        added.addAll(appsList.added);
         appsList.added.clear();
         addedOrModified.addAll(appsList.modified);
         appsList.modified.clear();
@@ -309,6 +308,9 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
                 }
             }
 
+            // 添加新APP图标
+            InstallShortcutReceiver.installNewAppShortcuts(context, added);
+
             bindUpdatedShortcuts(updatedShortcuts, mUser);
             if (!removedShortcuts.isEmpty()) {
                 deleteAndBindComponentsRemoved(ItemInfoMatcher.ofItemIds(removedShortcuts, false));
@@ -355,16 +357,6 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
 
             // Remove any queued items from the install queue
             InstallShortcutReceiver.removeFromInstallQueue(context, removedPackages, mUser);
-        }
-
-        if (!removedApps.isEmpty()) {
-            // Remove corresponding apps from All-Apps
-            scheduleCallbackTask(new CallbackTask() {
-                @Override
-                public void execute(Callbacks callbacks) {
-                    callbacks.bindAppInfosRemoved(removedApps);
-                }
-            });
         }
 
         if (Utilities.ATLEAST_OREO && mOp == OP_ADD) {

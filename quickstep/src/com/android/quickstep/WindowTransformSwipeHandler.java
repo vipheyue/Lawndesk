@@ -63,7 +63,6 @@ import com.android.launcher3.Utilities;
 import com.android.launcher3.anim.AnimationSuccessListener;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.anim.Interpolators;
-import com.android.launcher3.logging.UserEventDispatcher;
 import com.android.launcher3.userevent.nano.LauncherLogProto.Action.Direction;
 import com.android.launcher3.userevent.nano.LauncherLogProto.Action.Touch;
 import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
@@ -230,11 +229,6 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
     private final long mTouchTimeMs;
     private long mLauncherFrameDrawnTime;
 
-    private boolean mBgLongSwipeMode = false;
-    private boolean mUiLongSwipeMode = false;
-    private float mLongSwipeDisplacement = 0;
-    private LongSwipeHelper mLongSwipeController;
-
     private Bundle mAssistData;
 
     WindowTransformSwipeHandler(int id, RunningTaskInfo runningTaskInfo, Context context,
@@ -321,9 +315,6 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
                 | STATE_SCALED_CONTROLLER_RECENTS, this::onFinishedTransitionToQuickScrub);
         mStateCallback.addCallback(STATE_LAUNCHER_STARTED | STATE_CURRENT_TASK_FINISHED
                 | STATE_QUICK_SCRUB_END, this::switchToFinalAppAfterQuickScrub);
-
-        mStateCallback.addCallback(LONG_SWIPE_ENTER_STATE, this::checkLongSwipeCanEnter);
-        mStateCallback.addCallback(LONG_SWIPE_START_STATE, this::checkLongSwipeCanStart);
     }
 
     private void executeOnUiThread(Runnable action) {
@@ -545,18 +536,7 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
         displacement = -displacement;
         if (displacement > mTransitionDragLength) {
             mCurrentShift.updateValue(1);
-
-            if (!mBgLongSwipeMode) {
-                mBgLongSwipeMode = true;
-                executeOnUiThread(this::onLongSwipeEnabledUi);
-            }
-            mLongSwipeDisplacement = displacement - mTransitionDragLength;
-            executeOnUiThread(this::onLongSwipeDisplacementUpdated);
         } else {
-            if (mBgLongSwipeMode) {
-                mBgLongSwipeMode = false;
-                executeOnUiThread(this::onLongSwipeDisabledUi);
-            }
             float translation = Math.max(displacement, 0);
             float shift = mTransitionDragLength == 0 ? 0 : translation / mTransitionDragLength;
             mCurrentShift.updateValue(shift);
@@ -699,11 +679,7 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
 
         mLogAction = isFling ? Touch.FLING : Touch.SWIPE;
 
-        if (mBgLongSwipeMode) {
-            executeOnUiThread(() -> onLongSwipeGestureFinishUi(endVelocity, isFling));
-        } else {
-            handleNormalGestureEnd(endVelocity, isFling);
-        }
+        handleNormalGestureEnd(endVelocity, isFling);
     }
 
     private void handleNormalGestureEnd(float endVelocity, boolean isFling) {
@@ -752,24 +728,6 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
     }
 
     private void doLogGesture(boolean toLauncher) {
-        DeviceProfile dp = mDp;
-        if (dp == null) {
-            // We probably never received an animation controller, skip logging.
-            return;
-        }
-        final int direction;
-        if (dp.isVerticalBarLayout()) {
-            direction = (dp.isSeascape() ^ toLauncher) ? Direction.LEFT : Direction.RIGHT;
-        } else {
-            direction = toLauncher ? Direction.UP : Direction.DOWN;
-        }
-
-        int dstContainerType = toLauncher ? ContainerType.TASKSWITCHER : ContainerType.APP;
-        UserEventDispatcher.newInstance(mContext, dp).logStateChangeAction(
-                mLogAction, direction,
-                ContainerType.NAVBAR, ContainerType.APP,
-                dstContainerType,
-                0);
     }
 
     /** Animates to the given progress, where 0 is the current app and 1 is overview. */
@@ -1014,76 +972,6 @@ public class WindowTransformSwipeHandler<T extends BaseDraggingActivity> {
 
     public void setGestureEndCallback(Runnable gestureEndCallback) {
         mGestureEndCallback = gestureEndCallback;
-    }
-
-    // Handling long swipe
-    private void onLongSwipeEnabledUi() {
-        mUiLongSwipeMode = true;
-        checkLongSwipeCanEnter();
-        checkLongSwipeCanStart();
-    }
-
-    private void onLongSwipeDisabledUi() {
-        mUiLongSwipeMode = false;
-
-        if (mLongSwipeController != null) {
-            mLongSwipeController.destroy();
-            setTargetAlphaProvider((t, a1) -> a1);
-
-            // Rebuild animations
-            buildAnimationController();
-        }
-    }
-
-    private void onLongSwipeDisplacementUpdated() {
-        if (!mUiLongSwipeMode || mLongSwipeController == null) {
-            return;
-        }
-
-        mLongSwipeController.onMove(mLongSwipeDisplacement);
-    }
-
-    private void checkLongSwipeCanEnter() {
-        if (!mUiLongSwipeMode || !mStateCallback.hasStates(LONG_SWIPE_ENTER_STATE)
-                || !mActivityControlHelper.supportsLongSwipe(mActivity)) {
-            return;
-        }
-
-        // We are entering long swipe mode, make sure the screen shot is captured.
-        mStateCallback.setState(STATE_CAPTURE_SCREENSHOT);
-
-    }
-
-    private void checkLongSwipeCanStart() {
-        if (!mUiLongSwipeMode || !mStateCallback.hasStates(LONG_SWIPE_START_STATE)
-                || !mActivityControlHelper.supportsLongSwipe(mActivity)) {
-            return;
-        }
-
-        RemoteAnimationTargetSet targetSet = mRecentsAnimationWrapper.targetSet;
-        if (targetSet == null) {
-            // This can happen when cancelAnimation comes on the background thread, while we are
-            // processing the long swipe on the UI thread.
-            return;
-        }
-
-        mLongSwipeController = mActivityControlHelper.getLongSwipeController(
-                mActivity, mRecentsAnimationWrapper.targetSet);
-        onLongSwipeDisplacementUpdated();
-        setTargetAlphaProvider(mLongSwipeController::getTargetAlpha);
-    }
-
-    private void onLongSwipeGestureFinishUi(float velocity, boolean isFling) {
-        if (!mUiLongSwipeMode || mLongSwipeController == null) {
-            mUiLongSwipeMode = false;
-            handleNormalGestureEnd(velocity, isFling);
-            return;
-        }
-        mUiLongSwipeMode = false;
-        finishCurrentTransitionToHome();
-        mLongSwipeController.end(velocity, isFling,
-                () -> setStateOnUiThread(STATE_HANDLER_INVALIDATED));
-
     }
 
     private void setTargetAlphaProvider(

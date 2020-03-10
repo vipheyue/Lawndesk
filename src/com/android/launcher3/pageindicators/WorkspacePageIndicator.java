@@ -129,7 +129,7 @@ public class WorkspacePageIndicator extends View implements Insettable, PageIndi
         mLinePaint.setColor(darkText ? Color.BLACK : Color.WHITE);
 
         LawnchairPreferences prefs = Utilities.getLawnchairPrefs(context);
-        mUseBottomLine = !prefs.getDockGradientStyle() || prefs.getDockShowArrow();
+        mUseBottomLine = false;
     }
 
     public void updateLineHeight() {

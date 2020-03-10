@@ -30,9 +30,7 @@ if (localPropsFile.exists()) {
     localProps.load(localPropsFile.newDataInputStream())
 }
 
-def publicBranches = ["alpha", "beta", "stable"]
-def ciBuild = localProps.getProperty("ciBuild") == "true" || System.getenv("CI_BUILD") == "true"
-def isPublicBuild = localProps.getProperty("public") == "true" || (ciBuild && publicBranches.contains(System.getenv("DRONE_BRANCH")))
+def isPublicBuild = "true"
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
@@ -42,42 +40,25 @@ android {
     compileSdkVersion 28
     buildToolsVersion '28.0.3'
 
-    signingConfigs {
-        ci {
-            storeFile file("debug.jks")
-            storePassword localProps.getProperty("storePass") ?: System.getenv("STORE_PASSWORD")
-            keyAlias "Lawnchair"
-            keyPassword localProps.getProperty("keyPass") ?:System.getenv("KEY_PASSWORD")
-        }
-    }
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 28
 
-        if (ciBuild) {
-            def ciBuildNumber = localProps.getProperty("buildNumber") ?: System.getenv("CI_BUILD_NUMBER")
-            versionCode = Integer.valueOf(ciBuildNumber)
-            def majorMinor = localProps.getProperty("majorMinor") ?: System.getenv("MAJOR_MINOR")
-            def drone = localProps.getProperty("public") == "true" || System.getenv("DRONE")
-            versionName = majorMinor + (drone ? "-" : ".") + ciBuildNumber
-        } else {
-            versionCode 1
-            versionName "2.0"
-        }
+        versionCode 1
+        versionName "1.0"
+        setProperty("archivesBaseName", "Lawndesk-$versionName-$versionCode")
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
         buildConfigField "boolean", "FEATURE_QUINOA", "true"
         buildConfigField "boolean", "FEATURE_SETTINGS_SEARCH", "true"
-        buildConfigField "boolean", "DEBUG_STRICT_MODE", isPublicBuild ? "false" : "true"
+        buildConfigField "boolean", "DEBUG_STRICT_MODE", "false"
         buildConfigField "boolean", "HAS_LEAKCANARY", "false"
         buildConfigField "boolean", "FEATURE_BUG_REPORTER", "true"
 
         def githubToken = localProps.getProperty('githubToken') ?: '"' + System.getenv("GITHUB_TOKEN") + '"'
         buildConfigField "String", "GITHUB_TOKEN", githubToken
-
-        buildConfigField "boolean", "SIGNATURE_VERIFICATION", "false"
 
         def debugMenuCode = System.getenv("DEBUG_MENU_CODE") ?: "veryperu"
         buildConfigField "String", "DEBUG_MENU_CODE_HASH", '"' + debugMenuCode.digest('SHA-1') + '"'
@@ -94,17 +75,12 @@ android {
     buildTypes {
         debug {
             minifyEnabled false
-            if (ciBuild) {
-                if (System.getenv("CI_EVENT_TYPE") != "pull_request") {
-                    signingConfig signingConfigs.ci
-                }
-            }
 
             dexOptions {
                 matchingFallbacks = ['debug']
             }
 
-            buildConfigField "boolean", "HAS_LEAKCANARY", isPublicBuild ? "false" : "true"
+            buildConfigField "boolean", "HAS_LEAKCANARY", "false"
         }
 
         optimized {
@@ -112,26 +88,18 @@ android {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                     'proguard.flags'
-            if (ciBuild) {
-                if (System.getenv("CI_EVENT_TYPE") != "pull_request") {
-                    signingConfig signingConfigs.ci
-                }
-            }
         }
 
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
                     'proguard.flags'
-            if (ciBuild) {
-                if (System.getenv("CI_EVENT_TYPE") != "pull_request") {
-                    signingConfig signingConfigs.ci
-                }
-            }
 
             dexOptions {
                 matchingFallbacks = ['release']
             }
+
         }
     }
 
@@ -165,8 +133,15 @@ android {
 
         quickstep {
             dimension "default"
-            applicationId 'ch.deletescape.lawnchair'
+            applicationId 'net.ohrz.lawndesk'
             testApplicationId 'com.android.launcher3.tests'
+
+            resValue "string", "xmlApplicationId", applicationId
+            resValue "string", "settingsApplicationId", "package:$applicationId"
+
+            buildConfigField "boolean", "HAS_LEAKCANARY", "false"
+            buildConfigField "boolean", "DEBUG_STRICT_MODE", "false"
+            buildConfigField "boolean", "FEATURE_BUG_REPORTER", "true"
         }
 
         lawnchair {
@@ -175,29 +150,17 @@ android {
 
         dev {
             dimension "build"
-            // Use v1 dev package name for compatibility testing
-            if (localProps.getProperty("v1compat") != "true") {
-                applicationIdSuffix ".dev"
-            }
-            versionNameSuffix "-dev"
         }
 
-        ci {
-            dimension "build"
-            applicationIdSuffix ".ci"
-            versionNameSuffix "-ci-" + (localProps.getProperty("branch") ?: System.getenv("DRONE_BRANCH"))
+    }
 
-            buildConfigField "boolean", "SIGNATURE_VERIFICATION", "true"
-        }
-
-        plah {
-            dimension "build"
-            applicationIdSuffix ".plah"
-
-            buildConfigField "boolean", "SIGNATURE_VERIFICATION", "true"
-            buildConfigField "boolean", "FEATURE_BUG_REPORTER", "false"
-            buildConfigField "boolean", "HAS_LEAKCANARY", "false"
-            buildConfigField "boolean", "DEBUG_STRICT_MODE", "false"
+    android.applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def builtType = variant.buildType.name
+            def versionName = variant.versionName
+            def versionCode = variant.versionCode
+            def flavor = variant.flavorName
+            outputFileName = "Lawndesk-${variant.versionName}.apk"
         }
     }
 
@@ -258,6 +221,7 @@ android {
             java.srcDirs = ['lawnchair/src']
             manifest.srcFile "lawnchair/AndroidManifest.xml"
         }
+
     }
 
     gradle.projectsEvaluated {

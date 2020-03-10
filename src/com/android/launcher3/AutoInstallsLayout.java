@@ -28,7 +28,6 @@ import android.content.res.XmlResourceParser;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Build.VERSION;
 import android.os.Bundle;
 import android.os.Process;
@@ -39,14 +38,14 @@ import android.util.Pair;
 import android.util.Patterns;
 import com.android.launcher3.LauncherProvider.SqlArguments;
 import com.android.launcher3.LauncherSettings.Favorites;
-import com.android.launcher3.config.FeatureFlags;
+import com.android.launcher3.compat.UserManagerCompat;
 import com.android.launcher3.graphics.LauncherIcons;
 import com.android.launcher3.util.Thunk;
 import com.android.launcher3.widget.custom.CustomAppWidgetProviderInfo;
 import com.android.launcher3.widget.custom.CustomWidgetParser;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Locale;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -189,6 +188,7 @@ public class AutoInstallsLayout {
         mIdp = LauncherAppState.getIDP(context);
         mRowCount = mIdp.numRows;
         mColumnCount = mIdp.numColumns;
+        mAddAppY = (mRowCount + 1) / 2;
     }
 
     /**
@@ -235,8 +235,7 @@ public class AutoInstallsLayout {
             out[0] = Favorites.CONTAINER_HOTSEAT;
             // Hack: hotseat items are stored using screen ids
             long rank = Long.parseLong(getAttributeValue(parser, ATTR_RANK));
-            out[1] = (FeatureFlags.NO_ALL_APPS_ICON || rank < mIdp.getAllAppsButtonRank())
-                    ? rank : (rank + 1);
+            out[1] = rank;
         } else {
             out[0] = Favorites.CONTAINER_DESKTOP;
             out[1] = Long.parseLong(getAttributeValue(parser, ATTR_SCREEN));
@@ -292,7 +291,12 @@ public class AutoInstallsLayout {
         return 0;
     }
 
+    HashSet<String> addedAppComponents = new HashSet<>();
+
     protected long addShortcut(String title, Intent intent, int type) {
+        if (type == Favorites.ITEM_TYPE_APPLICATION) {
+            addedAppComponents.add(intent.getComponent().toString());
+        }
         long id = mCallback.generateNewItemId();
         mValues.put(Favorites.INTENT, intent.toUri(0));
         mValues.put(Favorites.TITLE, title);
@@ -305,6 +309,149 @@ public class AutoInstallsLayout {
         } else {
             return id;
         }
+    }
+
+    private int mAddAppX = 0;
+    private int mAddAppY = 0;
+    private long mAddAppScreen = 0;
+
+    long addFolder(ArrayList<AppInfo> apps, ArrayList<Long> screenIds, String folderName) {
+        if (!screenIds.contains(mAddAppScreen)) {
+            screenIds.add(mAddAppScreen);
+        }
+        mValues.clear();
+        mValues.put(Favorites.CONTAINER, Favorites.CONTAINER_DESKTOP);
+        mValues.put(Favorites.SCREEN, mAddAppScreen);
+        mValues.put(Favorites.CELLX, mAddAppX);
+        mValues.put(Favorites.CELLY, mAddAppY);
+        mValues.put(Favorites.TITLE, folderName);
+
+        mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_FOLDER);
+        mValues.put(Favorites.SPANX, 1);
+        mValues.put(Favorites.SPANY, 1);
+        mValues.put(Favorites._ID, mCallback.generateNewItemId());
+        long folderId = mCallback.insertAndCheck(mDb, mValues);
+        if (folderId < 0) {
+            // fail
+            if (LOGD) Log.e(TAG, "Unable to add folder");
+            return -1;
+        } else {
+            // success
+            mAddAppX++;
+            if (mAddAppX == mColumnCount) {
+                mAddAppX = 0;
+                mAddAppY++;
+            }
+            if (mAddAppY == mRowCount) {
+                mAddAppX = 0;
+                mAddAppY = 0;
+                mAddAppScreen++;
+            }
+        }
+
+        final ContentValues myValues = new ContentValues(mValues);
+        ArrayList<Long> folderItems = new ArrayList<>();
+
+        int rank = 0;
+        for (AppInfo app : apps) {
+            mValues.clear();
+            mValues.put(Favorites.CONTAINER, folderId);
+            mValues.put(Favorites.RANK, rank);
+
+            ActivityInfo info;
+            try {
+                info = mPackageManager.getActivityInfo(app.getTargetComponent(), 0);
+                String title = info.loadLabel(mPackageManager).toString();
+
+                long id = mCallback.generateNewItemId();
+                mValues.put(Favorites.INTENT, app.intent.toUri(0));
+                mValues.put(Favorites.TITLE, title);
+                mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_APPLICATION);
+                mValues.put(Favorites.SPANX, 1);
+                mValues.put(Favorites.SPANY, 1);
+                mValues.put(Favorites.PROFILE_ID, UserManagerCompat.getInstance(mContext).getSerialNumberForUser(app.user));
+                mValues.put(Favorites._ID, id);
+                if (mCallback.insertAndCheck(mDb, mValues) < 0) {
+                    // fail
+                } else {
+                    // success
+                    folderItems.add(id);
+                    rank++;
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        long addedId = folderId;
+
+        // We can only have folders with >= 2 items, so we need to remove the
+        // folder and clean up if less than 2 items were included, or some
+        // failed to add, and less than 2 were actually added
+        if (folderItems.size() < 2) {
+            // Delete the folder
+            Uri uri = Favorites.getContentUri(folderId);
+            SqlArguments args = new SqlArguments(uri, null, null);
+            mDb.delete(args.table, args.where, args.args);
+            addedId = -1;
+
+            // If we have a single item, promote it to where the folder
+            // would have been.
+            if (folderItems.size() == 1) {
+                final ContentValues childValues = new ContentValues();
+                copyInteger(myValues, childValues, Favorites.CONTAINER);
+                copyInteger(myValues, childValues, Favorites.SCREEN);
+                copyInteger(myValues, childValues, Favorites.CELLX);
+                copyInteger(myValues, childValues, Favorites.CELLY);
+
+                addedId = folderItems.get(0);
+                mDb.update(Favorites.TABLE_NAME, childValues,
+                        Favorites._ID + "=" + addedId, null);
+            }
+        }
+        return addedId;
+    }
+
+    long addApp(AppInfo app, ArrayList<Long> screenIds) {
+        if (!screenIds.contains(mAddAppScreen)) {
+            screenIds.add(mAddAppScreen);
+        }
+        try {
+            ActivityInfo info = mPackageManager.getActivityInfo(app.getTargetComponent(), 0);
+            String title = info.loadLabel(mPackageManager).toString();
+            long id = mCallback.generateNewItemId();
+            mValues.clear();
+            mValues.put(Favorites.CONTAINER, Favorites.CONTAINER_DESKTOP);
+            mValues.put(Favorites.SCREEN, mAddAppScreen);
+            mValues.put(Favorites.CELLX, mAddAppX);
+            mValues.put(Favorites.CELLY, mAddAppY);
+            mValues.put(Favorites.INTENT, app.intent.toUri(0));
+            mValues.put(Favorites.TITLE, title);
+            mValues.put(Favorites.ITEM_TYPE, Favorites.ITEM_TYPE_APPLICATION);
+            mValues.put(Favorites.PROFILE_ID, UserManagerCompat.getInstance(mContext).getSerialNumberForUser(app.user));
+            mValues.put(Favorites.SPANX, 1);
+            mValues.put(Favorites.SPANY, 1);
+            mValues.put(Favorites._ID, id);
+            if (mCallback.insertAndCheck(mDb, mValues) < 0) {
+                // fail
+                return -1;
+            } else {
+                // success
+                mAddAppX++;
+                if (mAddAppX == mColumnCount) {
+                    mAddAppX = 0;
+                    mAddAppY++;
+                }
+                if (mAddAppY == mRowCount) {
+                    mAddAppX = 0;
+                    mAddAppY = 0;
+                    mAddAppScreen++;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 1;
     }
 
     protected ArrayMap<String, TagParser> getFolderElementsMap() {

@@ -114,7 +114,6 @@ public class RecentsActivity extends BaseDraggingActivity {
     }
 
     private void onHandleConfigChanged() {
-        mUserEventDispatcher = null;
         initDeviceProfile();
 
         AbstractFloatingView.closeOpenViews(this, true,

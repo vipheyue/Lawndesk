@@ -16,10 +16,7 @@
 package com.android.quickstep.views;
 
 import static com.android.launcher3.LauncherAppTransitionManagerImpl.ALL_APPS_PROGRESS_OFF_SCREEN;
-import static com.android.launcher3.LauncherState.ALL_APPS_HEADER_EXTRA;
 import static com.android.launcher3.LauncherState.NORMAL;
-import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS_PROGRESS;
-import static com.android.launcher3.allapps.AllAppsTransitionController.SCRIM_PROGRESS;
 
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
@@ -131,23 +128,6 @@ public class LauncherRecentsView extends RecentsView<Launcher> {
             return anim;
         }
 
-        float allAppsProgressOffscreen = ALL_APPS_PROGRESS_OFF_SCREEN;
-        LauncherState state = mActivity.getStateManager().getState();
-        if ((state.getVisibleElements(mActivity) & ALL_APPS_HEADER_EXTRA) != 0) {
-            float maxShiftRange = mActivity.getDeviceProfile().heightPx;
-            float currShiftRange = mActivity.getAllAppsController().getShiftRange();
-            allAppsProgressOffscreen = 1f + (maxShiftRange - currShiftRange) / maxShiftRange;
-        }
-        anim.play(ObjectAnimator.ofFloat(
-                mActivity.getAllAppsController(), ALL_APPS_PROGRESS, allAppsProgressOffscreen));
-        anim.play(ObjectAnimator.ofFloat(
-                mActivity.getAllAppsController(), SCRIM_PROGRESS, allAppsProgressOffscreen));
-
-        ObjectAnimator dragHandleAnim = ObjectAnimator.ofInt(
-                mActivity.findViewById(R.id.scrim_view), ScrimView.DRAG_HANDLE_ALPHA, 0);
-        dragHandleAnim.setInterpolator(Interpolators.ACCEL_2);
-        anim.play(dragHandleAnim);
-
         return anim;
     }
 
@@ -160,9 +140,6 @@ public class LauncherRecentsView extends RecentsView<Launcher> {
     protected void onTaskLaunched(boolean success) {
         if (success) {
             mActivity.getStateManager().goToState(NORMAL, false /* animate */);
-        } else {
-            LauncherState state = mActivity.getStateManager().getState();
-            mActivity.getAllAppsController().setState(state);
         }
         super.onTaskLaunched(success);
     }

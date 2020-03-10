@@ -31,7 +31,6 @@ import ch.deletescape.lawnchair.flowerpot.Flowerpot
 import ch.deletescape.lawnchair.bugreport.BugReportClient
 import ch.deletescape.lawnchair.bugreport.BugReportService
 import ch.deletescape.lawnchair.iconpack.IconPackManager
-import ch.deletescape.lawnchair.sesame.Sesame
 import ch.deletescape.lawnchair.smartspace.LawnchairSmartspaceController
 import ch.deletescape.lawnchair.theme.ThemeManager
 import ch.deletescape.lawnchair.util.extensions.d
@@ -74,34 +73,9 @@ class LawnchairApp : Application() {
 
         ThemeManager.getInstance(this).registerColorListener()
         BlurWallpaperProvider.getInstance(this)
-        Flowerpot.Manager.getInstance(this)
         if (BuildConfig.FEATURE_BUG_REPORTER && lawnchairPrefs.showCrashNotifications) {
             BugReportClient.getInstance(this)
             BugReportService.registerNotificationChannel(this)
-        }
-
-        if (BuildConfig.FEATURE_QUINOA) {
-            SesameFrontend.init(this, object: SesameInitOnComplete {
-                override fun onConnect() {
-                    val thiz = this@LawnchairApp
-                    SesameFrontend.setIntegrationDialog(thiz, R.layout.dialog_sesame_integration, android.R.id.button2, android.R.id.button1)
-                    val ipm = IconPackManager.getInstance(thiz)
-                    ipm.addListener {
-                        if (thiz.lawnchairPrefs.syncLookNFeelWithSesame) {
-                            runOnUiWorkerThread {
-                                val pkg = ipm.packList.currentPack().packPackageName
-                                Sesame.LookAndFeel[LookFeelKeys.ICON_PACK_PKG] = if (pkg == "") null else pkg
-                            }
-                        }
-                    }
-                    Sesame.setupSync(thiz)
-                }
-
-                override fun onDisconnect() {
-                    // do nothing
-                }
-
-            })
         }
     }
 

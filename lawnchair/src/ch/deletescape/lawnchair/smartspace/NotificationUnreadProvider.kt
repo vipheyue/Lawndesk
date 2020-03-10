@@ -17,13 +17,10 @@
 
 package ch.deletescape.lawnchair.smartspace
 
-import android.service.notification.StatusBarNotification
 import android.support.annotation.Keep
 import android.support.v4.app.NotificationCompat.PRIORITY_DEFAULT
 import android.text.TextUtils
 import ch.deletescape.lawnchair.*
-import ch.deletescape.lawnchair.flowerpot.Flowerpot
-import ch.deletescape.lawnchair.flowerpot.FlowerpotApps
 import ch.deletescape.lawnchair.smartspace.LawnchairSmartspaceController.CardData
 import ch.deletescape.lawnchair.smartspace.LawnchairSmartspaceController.Line
 import com.android.launcher3.R
@@ -37,8 +34,6 @@ class NotificationUnreadProvider(controller: LawnchairSmartspaceController) :
 
     private val manager = NotificationsManager.instance
     private var flowerpotLoaded = false
-    private var flowerpotApps: FlowerpotApps? = null
-    private val tmpKey = PackageUserKey(null, null)
     private var zenModeEnabled = false
         set(value) {
             if (field != value) {
@@ -55,23 +50,12 @@ class NotificationUnreadProvider(controller: LawnchairSmartspaceController) :
 
         manager.addListener(this)
         zenModeListener.startListening()
-        runOnUiWorkerThread {
-            flowerpotApps = Flowerpot.Manager.getInstance(controller.context)
-                    .getPot("COMMUNICATION", true)?.apps
-            flowerpotLoaded = true
-            onNotificationsChanged()
-        }
     }
 
     override fun onNotificationsChanged() {
         runOnMainThread {
             updateData(null, getEventCard())
         }
-    }
-
-    private fun isCommunicationApp(sbn: StatusBarNotification): Boolean {
-        return tmpKey.updateFromNotification(sbn)
-               && flowerpotApps?.packageMatches?.contains(tmpKey) != false
     }
 
     private fun getEventCard(): CardData? {
@@ -81,7 +65,6 @@ class NotificationUnreadProvider(controller: LawnchairSmartspaceController) :
                 .asSequence()
                 .filter { !it.isOngoing }
                 .filter { it.notification.priority >= PRIORITY_DEFAULT }
-                .filter { isCommunicationApp(it) }
                 .maxWith(compareBy(
                         { it.notification.priority },
                         { it.notification.`when`})) ?: return null

@@ -20,8 +20,8 @@ class AppSearchSearchProvider(context: Context) : SearchProvider(context) {
 
     override fun startSearch(callback: (intent: Intent) -> Unit){
         val launcher = LauncherAppState.getInstanceNoCreate().launcher
-        launcher.stateManager.goToState(LauncherState.ALL_APPS, true) {
-            launcher.appsView.searchUiManager.startSearch()
+        launcher.stateManager.goToState(LauncherState.SEARCH, true) {
+            launcher.searchView.searchUiManager.startSearch()
         }
     }
 

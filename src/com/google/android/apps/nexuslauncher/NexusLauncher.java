@@ -9,14 +9,9 @@ import android.support.v4.graphics.ColorUtils;
 import android.view.View;
 import ch.deletescape.lawnchair.settings.ui.SettingsActivity;
 import com.android.launcher3.*;
-import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
-import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.uioverrides.WallpaperColorInfo;
 import com.android.launcher3.util.Themes;
-import com.google.android.apps.nexuslauncher.PredictionUiStateManager.Client;
-import com.google.android.apps.nexuslauncher.qsb.QsbAnimationController;
 import com.google.android.apps.nexuslauncher.reflection.ReflectionClient;
-import com.google.android.apps.nexuslauncher.search.ItemInfoUpdateReceiver;
 import com.google.android.apps.nexuslauncher.smartspace.SmartspaceController;
 import com.google.android.apps.nexuslauncher.smartspace.SmartspaceView;
 import com.google.android.apps.nexuslauncher.utils.ActionIntentFilter;
@@ -41,9 +36,6 @@ public class NexusLauncher {
     private NexusLauncherOverlay mOverlay;
     private boolean mStarted;
     private final Bundle mUiInformation = new Bundle();
-    private ItemInfoUpdateReceiver mItemInfoUpdateReceiver;
-    QsbAnimationController mQsbAnimationController;
-    private Handler handler = new Handler(LauncherModel.getUiWorkerLooper());
 
     public NexusLauncher(NexusLauncherActivity activity) {
         mLauncher = activity;
@@ -61,23 +53,7 @@ public class NexusLauncher {
         private Set<SmartspaceView> mSmartspaceViews = Collections.newSetFromMap(new WeakHashMap<>());
         private final FeedReconnector mFeedReconnector = new FeedReconnector();
 
-        private final Runnable mUpdatePredictionsIfResumed = this::updatePredictionsIfResumed;
-
-        private ItemInfoUpdateReceiver getUpdateReceiver() {
-            if (mItemInfoUpdateReceiver == null) {
-                mItemInfoUpdateReceiver = new ItemInfoUpdateReceiver(mLauncher, mCallbacks);
-            }
-            return mItemInfoUpdateReceiver;
-        }
-
-        public void bindAllApplications(final ArrayList<AppInfo> list) {
-            getUpdateReceiver().di();
-            PredictionUiStateManager.getInstance(mLauncher).dispatchOnChange();
-            mLauncher.getUserEventDispatcher().updatePredictions();
-        }
-
         public void dump(final String s, final FileDescriptor fileDescriptor, final PrintWriter printWriter, final String[] array) {
-            SmartspaceController.get(mLauncher).cX(s, printWriter);
         }
 
         public void finishBindingItems(final boolean b) {
@@ -117,21 +93,11 @@ public class NexusLauncher {
 
             SmartspaceController.get(mLauncher).cW();
 
-            mQsbAnimationController = new QsbAnimationController(mLauncher);
-
             mUiInformation.putInt("system_ui_visibility", mLauncher.getWindow().getDecorView().getSystemUiVisibility());
             applyFeedTheme(false);
             WallpaperColorInfo instance = WallpaperColorInfo.getInstance(mLauncher);
             instance.addOnChangeListener(this);
             onExtractedColorsChanged(instance);
-
-            getUpdateReceiver().onCreate();
-
-            PredictionUiStateManager predictionUiStateManager = PredictionUiStateManager.getInstance(mLauncher);
-            predictionUiStateManager.setTargetAppsView(mLauncher.getAppsView());
-            if (FeatureFlags.REFLECTION_FORCE_OVERVIEW_MODE) {
-                predictionUiStateManager.switchClient(Client.OVERVIEW);
-            }
         }
 
         public void onDestroy() {
@@ -164,10 +130,6 @@ public class NexusLauncher {
 
             Utilities.getPrefs(mLauncher).unregisterOnSharedPreferenceChangeListener(this);
             WallpaperColorInfo.getInstance(mLauncher).removeOnChangeListener(this);
-
-            getUpdateReceiver().onDestroy();
-
-            PredictionUiStateManager.getInstance(mLauncher).setTargetAppsView(null);
         }
 
         public void onDetachedFromWindow() {
@@ -206,12 +168,6 @@ public class NexusLauncher {
 
             for (SmartspaceView smartspace : mSmartspaceViews) {
                 smartspace.onResume();
-            }
-
-            Handler handler = mLauncher.getDragLayer().getHandler();
-            if (handler != null) {
-                handler.removeCallbacks(mUpdatePredictionsIfResumed);
-                Utilities.postAsyncCallback(handler, mUpdatePredictionsIfResumed);
             }
         }
 
@@ -302,17 +258,6 @@ public class NexusLauncher {
 
             if (redraw) {
                 mClient.redraw(mUiInformation);
-            }
-        }
-
-        private void updatePredictionsIfResumed() {
-            if (mLauncher.hasBeenResumed()) {
-                ReflectionClient.getInstance(mLauncher).updatePredictionsNow(
-                        FeatureFlags.REFLECTION_FORCE_OVERVIEW_MODE ? Client.OVERVIEW.id : Client.HOME.id);
-                handler.post(() -> {
-                    mLauncher.getUserEventDispatcher().updatePredictions();
-                    mLauncher.getUserEventDispatcher().updateActions();
-                });
             }
         }
 

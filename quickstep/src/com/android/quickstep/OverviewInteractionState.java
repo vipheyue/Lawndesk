@@ -36,7 +36,6 @@ import ch.deletescape.lawnchair.LawnchairPreferences;
 import ch.deletescape.lawnchair.customnavbar.CustomNavBar;
 import com.android.launcher3.MainThreadExecutor;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.allapps.DiscoveryBounce;
 import com.android.launcher3.util.UiThreadHelper;
 import com.android.systemui.shared.recents.ISystemUiProxy;
 import org.jetbrains.annotations.NotNull;
@@ -266,13 +265,6 @@ public class OverviewInteractionState implements LawnchairPreferences.OnPreferen
     }
 
     private void resetHomeBounceSeenOnQuickstepEnabledFirstTime() {
-        if (mSwipeUpEnabled && !Utilities.getPrefs(mContext).getBoolean(
-                HAS_ENABLED_QUICKSTEP_ONCE, true)) {
-            Utilities.getPrefs(mContext).edit()
-                    .putBoolean(HAS_ENABLED_QUICKSTEP_ONCE, true)
-                    .putBoolean(DiscoveryBounce.HOME_BOUNCE_SEEN, false)
-                    .apply();
-        }
     }
 
     @Override

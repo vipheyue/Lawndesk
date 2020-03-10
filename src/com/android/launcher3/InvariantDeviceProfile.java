@@ -83,7 +83,9 @@ public class InvariantDeviceProfile {
      * Number of icons per row and column in the folder.
      */
     public int numFolderRows;
+    public int numFolderRowsOriginal;
     public int numFolderColumns;
+    public int numFolderColumnsOriginal;
     public float iconSize;
     public float iconSizeOriginal;
     public float hotseatIconSize;
@@ -134,9 +136,9 @@ public class InvariantDeviceProfile {
         numColumns = c;
         numFolderRows = fr;
         numFolderColumns = fc;
-        iconSize = is;
-        landscapeIconSize = lis;
-        iconTextSize = its;
+        iconSize = is * 1.08f;
+        landscapeIconSize = lis * 1.08f;
+        iconTextSize = its * 0.98f;
         numHotseatIcons = hs;
         defaultLayoutId = dlId;
         demoModeLayoutId = dmlId;
@@ -175,7 +177,9 @@ public class InvariantDeviceProfile {
         defaultLayoutId = closestProfile.defaultLayoutId;
         demoModeLayoutId = closestProfile.demoModeLayoutId;
         numFolderRows = closestProfile.numFolderRows;
+        numFolderRowsOriginal = numFolderRows;
         numFolderColumns = closestProfile.numFolderColumns;
+        numFolderColumnsOriginal = numFolderColumns;
 
         iconSize = interpolatedDeviceProfileOut.iconSize;
         iconSizeOriginal = interpolatedDeviceProfileOut.iconSize;
@@ -360,7 +364,7 @@ public class InvariantDeviceProfile {
     }
 
     public int getAllAppsButtonRank() {
-        if (FeatureFlags.IS_DOGFOOD_BUILD && FeatureFlags.NO_ALL_APPS_ICON) {
+        if (FeatureFlags.IS_DOGFOOD_BUILD) {
             throw new IllegalAccessError("Accessing all apps rank when all-apps is disabled");
         }
         return numHotseatIcons / 2;

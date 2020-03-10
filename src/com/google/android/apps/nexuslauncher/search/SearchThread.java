@@ -23,6 +23,9 @@ public class SearchThread implements SearchAlgorithm, Handler.Callback {
     private final Handler mUiHandler;
     private boolean mInterruptActiveRequests;
 
+    private static HandlerThread suggestionHandlerThread;
+    private final Handler mGetSuggestionsHandler;
+
     public SearchThread(Context context) {
         mContext = context;
         mUiHandler = new Handler(this);
@@ -30,7 +33,12 @@ public class SearchThread implements SearchAlgorithm, Handler.Callback {
             handlerThread = new HandlerThread("search-thread", -2);
             handlerThread.start();
         }
-        mHandler = new Handler(SearchThread.handlerThread.getLooper(), this);
+        if (suggestionHandlerThread == null) {
+            suggestionHandlerThread = new HandlerThread("suggestion-thread", -2);
+            suggestionHandlerThread.start();
+        }
+        mHandler = new Handler(handlerThread.getLooper(), this);
+        mGetSuggestionsHandler = new Handler(suggestionHandlerThread.getLooper(), this);
     }
 
     private void dj(SearchResult result) {
@@ -55,9 +63,18 @@ public class SearchThread implements SearchAlgorithm, Handler.Callback {
             }
         }
 
-        result.mSuggestions.addAll(getSuggestions(result.mQuery));
-
         Message.obtain(mUiHandler, 200, result).sendToTarget();
+
+        mGetSuggestionsHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                List<String> suggestions = getSuggestions(result.mQuery);
+                if (suggestions.size() > 0) {
+                    result.mSuggestions.addAll(suggestions);
+                    Message.obtain(mUiHandler, 300, result).sendToTarget();
+                }
+            }
+        });
     }
 
     public void cancel(boolean interruptActiveRequests) {
@@ -65,6 +82,8 @@ public class SearchThread implements SearchAlgorithm, Handler.Callback {
         mHandler.removeMessages(100);
         if (interruptActiveRequests) {
             mUiHandler.removeMessages(200);
+            mUiHandler.removeMessages(300);
+            mGetSuggestionsHandler.removeCallbacksAndMessages(null);
         }
     }
 
@@ -94,7 +113,14 @@ public class SearchThread implements SearchAlgorithm, Handler.Callback {
             case 200: {
                 if (!mInterruptActiveRequests) {
                     SearchResult searchResult = (SearchResult) message.obj;
-                    searchResult.mCallbacks.onSearchResult(searchResult.mQuery, searchResult.mApps, searchResult.mSuggestions);
+                    searchResult.mCallbacks.onSearchResult(searchResult.mQuery, searchResult.mApps);
+                }
+                break;
+            }
+            case 300: {
+                if (!mInterruptActiveRequests) {
+                    SearchResult searchResult = (SearchResult) message.obj;
+                    searchResult.mCallbacks.onSuggestions(searchResult.mSuggestions);
                 }
                 break;
             }

@@ -310,12 +310,6 @@ public class SecondaryDropTarget extends ButtonDropTarget implements OnAlarmList
         }
 
         @Override
-        public void fillInLogContainerData(View v, ItemInfo info, Target target,
-                Target targetParent) {
-            mOriginal.fillInLogContainerData(v, info, target, targetParent);
-        }
-
-        @Override
         public void onLauncherResume() {
             // We use MATCH_UNINSTALLED_PACKAGES as the app can be on SD card as well.
             if (LauncherAppsCompat.getInstance(mContext)

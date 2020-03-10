@@ -27,6 +27,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import ch.deletescape.lawnchair.*
 import ch.deletescape.lawnchair.util.SingletonHolder
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 
@@ -92,7 +93,8 @@ class BlurWallpaperProvider(val context: Context) {
             return
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1 && !context.hasStoragePermission){
-            prefs.enableBlur = false
+            wallpaper = null
+            placeholder = null
             return
         }
         val enabled = getEnabledStatus()
@@ -114,10 +116,11 @@ class BlurWallpaperProvider(val context: Context) {
         var wallpaper = try {
             Utilities.drawableToBitmap(mWallpaperManager.drawable, true) as Bitmap
         } catch (e: Exception) {
-            prefs.enableBlur = false
             runOnMainThread {
-                val msg = "${context.getString(R.string.failed)}: ${e.message}"
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                if (BuildConfig.DEBUG) {
+                    val msg = "${context.getString(R.string.failed)}: ${e.message}"
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
                 notifyWallpaperChanged()
             }
             return
@@ -144,9 +147,10 @@ class BlurWallpaperProvider(val context: Context) {
                 wallpaper.recycle()
             } else {
                 if (error is OutOfMemoryError) {
-                    prefs.enableBlur = false
                     runOnMainThread {
-                        Toast.makeText(context, R.string.failed, Toast.LENGTH_LONG).show()
+                        if (BuildConfig.DEBUG) {
+                            Toast.makeText(context, R.string.failed, Toast.LENGTH_LONG).show()
+                        }
                         notifyWallpaperChanged()
                     }
                 }
@@ -290,7 +294,7 @@ class BlurWallpaperProvider(val context: Context) {
         const val BLUR_ALLAPPS = 4
         const val DOWNSAMPLE_FACTOR = 8
 
-        var isEnabled: Boolean = false
+        var isEnabled: Boolean = true
         private var sEnabledFlag: Int = 0
 
         fun isEnabled(flag: Int): Boolean {

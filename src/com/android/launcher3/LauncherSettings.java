@@ -21,6 +21,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
+import java.io.Serializable;
+import java.util.ArrayList;
 
 /**
  * Settings related utilities.
@@ -322,6 +324,12 @@ public class LauncherSettings {
 
         public static Bundle call(ContentResolver cr, String method) {
             return cr.call(CONTENT_URI, method, null, null);
+        }
+
+        public static Bundle callLoadApps(ContentResolver cr, ArrayList<AppInfo> apps) {
+            Bundle data = new Bundle();
+            data.putSerializable("apps", apps);
+            return cr.call(CONTENT_URI, METHOD_LOAD_DEFAULT_FAVORITES, null, data);
         }
     }
 }

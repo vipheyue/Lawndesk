@@ -28,14 +28,6 @@
 
     <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
         android:defaultValue="true"
-        android:key="pref_iconPopup_sesame"
-        android:icon="@drawable/ic_sesame"
-        android:persistent="true"
-        android:title="@string/shortcut_sesame"
-        app:controllerClass=".SesameShortcutController" />
-
-    <ch.deletescape.lawnchair.preferences.StyledSwitchPreferenceCompat
-        android:defaultValue="true"
         android:key="pref_iconPopup_edit"
         android:icon="@drawable/ic_edit_no_shadow"
         android:persistent="true"

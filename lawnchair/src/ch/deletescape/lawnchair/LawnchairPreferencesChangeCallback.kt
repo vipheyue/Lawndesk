@@ -26,7 +26,7 @@ import com.android.launcher3.pageindicators.WorkspacePageIndicator
 class LawnchairPreferencesChangeCallback(val launcher: LawnchairLauncher) {
 
     fun recreate() {
-        if (launcher.shouldRecreate()) launcher.recreate()
+        if (launcher.shouldRecreate()) launcher.scheduleRecreate()
     }
 
     fun reloadApps() {
@@ -38,7 +38,6 @@ class LawnchairPreferencesChangeCallback(val launcher: LawnchairLauncher) {
     }
 
     fun reloadDrawer() {
-        launcher.appsView.appsLists.forEach { it.reset() }
     }
 
     fun restart() {
@@ -54,7 +53,6 @@ class LawnchairPreferencesChangeCallback(val launcher: LawnchairLauncher) {
     }
 
     fun resetAllApps() {
-        launcher.mAllAppsController.reset()
     }
 
     fun updatePageIndicator() {

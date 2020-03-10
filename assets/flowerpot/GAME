@@ -7,7 +7,9 @@ $1
 &isGame
 # appCategory set to CATEGORY_GAME
 &category|game
+;android.intent.category.VR_HOME
 # GAME
+com.google.android.play.games
 com.androbros.puzzle2048eng
 com.outfit7.tomsjetski
 air.com.hypah.io.slither

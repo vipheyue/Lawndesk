@@ -4,6 +4,8 @@
 $1
 # STATIC TEMPLATE
 &category|news
+;android.intent.category.APP_BROWSER
+:android.intent.action.WEB_SEARCH
 # NEWS_AND_MAGAZINES
 com.globo.g1.app
 se.aftonbladet.start
@@ -53,7 +55,6 @@ samsungupdate.com
 ch.tagblatt.epaper
 bbc.mobile.news.ww
 ch.iAgentur.i20MinFr
-com.twitter.android
 ch.vsdruck.eversify.buku
 de.axelspringer.yapa
 ch.tamedia.fuw

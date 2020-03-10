@@ -28,8 +28,6 @@ import com.android.launcher3.graphics.BitmapRenderer;
 import com.android.launcher3.uioverrides.WallpaperColorInfo;
 import com.android.launcher3.util.Themes;
 import com.google.android.apps.nexuslauncher.NexusLauncherActivity;
-import com.google.android.apps.nexuslauncher.PredictionUiStateManager;
-import com.google.android.apps.nexuslauncher.allapps.PredictionsFloatingHeader;
 import com.google.android.apps.nexuslauncher.search.AppSearchProvider;
 import com.google.android.apps.nexuslauncher.search.nano.SearchProto.a_search;
 import com.google.android.apps.nexuslauncher.search.nano.SearchProto.b_search;
@@ -38,7 +36,6 @@ import com.google.android.apps.nexuslauncher.search.nano.SearchProto.d_search;
 
 import com.google.android.apps.nexuslauncher.util.ComponentKeyMapper;
 import java.util.ArrayList;
-import java.util.List;
 
 public class ConfigBuilder {
     private final c_search mNano;
@@ -122,7 +119,7 @@ public class ConfigBuilder {
         remoteViews.setViewPadding(android.R.id.icon, horizontalPadding, paddingTop, horizontalPadding, paddingBottom);
         final int minPadding = Math.min((int) (iconSize * 0.12f), Math.min(horizontalPadding, Math.min(paddingTop, paddingBottom)));
         remoteViews.setViewPadding(R.id.click_feedback_wrapper, horizontalPadding - minPadding, paddingTop - minPadding, horizontalPadding - minPadding, paddingBottom - minPadding);
-        remoteViews.setTextViewTextSize(android.R.id.title, 0, mActivity.getDeviceProfile().allAppsIconTextSizePx);
+        remoteViews.setTextViewTextSize(android.R.id.title, 0, mActivity.getDeviceProfile().iconTextSizePx);
         remoteViews.setViewPadding(android.R.id.title, mBubbleTextView.getPaddingLeft(), mBubbleTextView.getCompoundDrawablePadding() + mBubbleTextView.getIconSize(), mBubbleTextView.getPaddingRight(), 0);
 
         return remoteViews;
@@ -201,14 +198,13 @@ public class ConfigBuilder {
     private /* synthetic */ void a(int i, Canvas canvas) {
         int save = canvas.save();
         canvas.translate(0.0f, (float) (-i));
-        a(canvas, mActivity.getAppsView().getRecyclerViewContainer());
-        a(canvas, mActivity.getAppsView().getFloatingHeaderView());
+        a(canvas, mActivity.getSearchView().getRecyclerViewContainer());
         canvas.restoreToCount(save);
     }
 
     private void a(Canvas canvas, View view) {
         final int[] array = {0, 0};
-        mActivity.getDragLayer().mapCoordInSelfToDescendant(mActivity.getAppsView(), array);
+        mActivity.getDragLayer().mapCoordInSelfToDescendant(mActivity.getSearchView(), array);
         mActivity.getDragLayer().mapCoordInSelfToDescendant(view, array);
         canvas.translate((float) (-array[0]), (float) (-array[1]));
         view.draw(canvas);
@@ -284,17 +280,6 @@ public class ConfigBuilder {
             mNano.ez = viewBounds3;
         }
         bW();
-        List<ComponentKeyMapper> predictedApps = ((PredictionsFloatingHeader) mActivity.getAppsView().getFloatingHeaderView()).getPredictionRowView().getPredictedAppComponents();
-        List<b_search> bSearches = new ArrayList<>();
-        final int count = Math.min(predictedApps.size(), allAppsCols);
-        for (int i = 0; i < count; i++) {
-            b_search bSearch = bZ(mActivity.getAppsView().getAppsStore().getApp(predictedApps.get(i).getComponentKey()), i);
-            if (bSearch != null) {
-                bSearches.add(bSearch);
-            }
-        }
-        mNano.eo = new b_search[bSearches.size()];
-        bSearches.toArray(mNano.eo);
     }
 
     private void cf() {
@@ -305,7 +290,7 @@ public class ConfigBuilder {
         final a_search en = new a_search();
         en.ef = dimensionPixelSize;
         en.eh = width - dimensionPixelSize - dimensionPixelSize;
-        en.ee = mActivity.getDeviceProfile().allAppsCellHeightPx;
+        en.ee = mActivity.getDeviceProfile().cellHeightPx;
         mNano.en = en;
         bW();
         final AlphabeticalAppsList apps = getAppsView().getApps();

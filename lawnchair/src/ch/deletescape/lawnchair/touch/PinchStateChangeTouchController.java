@@ -188,10 +188,6 @@ public class PinchStateChangeTouchController extends AnimatorListenerAdapter imp
             i2 = !z;
         }
         if (i2) {
-            if (launcherState != mFromState) {
-                mLauncher.getUserEventDispatcher().logStateChangeAction(i, getDirectionForLog(), 6,
-                        mFromState.containerType, mToState.containerType, mLauncher.getWorkspace().getCurrentPage());
-            }
             mLauncher.getStateManager().goToState(launcherState, false);
         }
     }

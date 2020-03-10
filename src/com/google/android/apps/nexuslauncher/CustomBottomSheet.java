@@ -41,7 +41,6 @@ import ch.deletescape.lawnchair.gestures.BlankGestureHandler;
 import ch.deletescape.lawnchair.gestures.GestureHandler;
 import ch.deletescape.lawnchair.gestures.ui.LauncherGesturePreference;
 import ch.deletescape.lawnchair.override.CustomInfoProvider;
-import ch.deletescape.lawnchair.preferences.MultiSelectTabPreference;
 import com.android.launcher3.AppInfo;
 import com.android.launcher3.FolderInfo;
 import com.android.launcher3.ItemInfo;
@@ -52,6 +51,8 @@ import com.android.launcher3.R;
 import com.android.launcher3.ShortcutInfo;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.util.ComponentKey;
+import com.android.launcher3.util.ItemInfoMatcher;
+import com.android.launcher3.util.LongArrayMap;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.widget.WidgetsBottomSheet;
 
@@ -106,11 +107,7 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
                 LawnchairLauncher launcher = LawnchairLauncher.Companion.getLauncher(getContext());
                 icon.setOnClickListener(v -> {
                     ItemInfo editItem;
-                    if (mItemInfo instanceof FolderInfo && ((FolderInfo) mItemInfo).isCoverMode()) {
-                        editItem = ((FolderInfo) mItemInfo).getCoverInfo();
-                    } else {
-                        editItem = mItemInfo;
-                    }
+                    editItem = mItemInfo;
                     CustomInfoProvider editProvider
                             = CustomInfoProvider.Companion.forItem(getContext(), editItem);
                     if (editProvider != null) {
@@ -145,6 +142,16 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
                 mInfoProvider.setTitle(mItemInfo, newTitle);
             }
         }
+        if (pf instanceof PrefsFragment) {
+            PrefsFragment prefsFragment = (PrefsFragment) pf;
+            if (prefsFragment.hidden) {
+                mLauncher.getModelWriter().deleteItemFromDatabase(prefsFragment.itemInfo);
+                final LongArrayMap<Boolean> removed = new LongArrayMap<>();
+                removed.put(prefsFragment.itemInfo.id, true);
+                ItemInfoMatcher matcher = ItemInfoMatcher.ofItemIds(removed, false);
+                mLauncher.bindWorkspaceComponentsRemoved(matcher);
+            }
+        }
         super.onDetachedFromWindow();
     }
 
@@ -174,26 +181,15 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
 
     public static class PrefsFragment extends PreferenceFragment implements Preference.OnPreferenceChangeListener, Preference.OnPreferenceClickListener {
         private final static String PREF_HIDE = "pref_app_hide";
-        private final static String PREF_HIDE_FROM_PREDICTIONS = "pref_app_prediction_hide";
-        private final static boolean HIDE_PREDICTION_OPTION = true;
         public final static int requestCode = "swipeUp".hashCode() & 65535;
 
-        private SwitchPreference mPrefHidePredictions;
-        private LauncherGesturePreference mSwipeUpPref;
-        private MultiSelectTabPreference mTabsPref;
-        private SwitchPreference mPrefCoverMode;
         private LawnchairPreferences prefs;
 
         private ComponentKey mKey;
 
-        private ItemInfo itemInfo;
-        private GestureHandler previousHandler;
-        private GestureHandler selectedHandler;
-        private Runnable setForceOpen;
-        private Runnable unsetForceOpen;
-        private Runnable reopen;
+        public ItemInfo itemInfo;
 
-        private CustomInfoProvider mProvider;
+        public boolean hidden = false;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -203,53 +199,22 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
 
         public void loadForApp(ItemInfo info, Runnable setForceOpen, Runnable unsetForceOpen, Runnable reopen) {
             itemInfo = info;
-            this.setForceOpen = setForceOpen;
-            this.unsetForceOpen = unsetForceOpen;
-            this.reopen = reopen;
-
-            mProvider = CustomInfoProvider.Companion.forItem(getActivity(), info);
 
             Context context = getActivity();
             boolean isApp = itemInfo instanceof AppInfo || itemInfo.itemType == LauncherSettings.Favorites.ITEM_TYPE_APPLICATION;
 
             PreferenceScreen screen = getPreferenceScreen();
             prefs = Utilities.getLawnchairPrefs(getActivity());
-            mSwipeUpPref = (LauncherGesturePreference) screen.findPreference("pref_swipe_up_gesture");
-            mTabsPref = (MultiSelectTabPreference) screen.findPreference("pref_show_in_tabs");
             if (!(itemInfo instanceof FolderInfo)) {
                 mKey = new ComponentKey(itemInfo.getTargetComponent(), itemInfo.user);
             }
             SwitchPreference mPrefHide = (SwitchPreference) findPreference(PREF_HIDE);
-            mPrefCoverMode = (SwitchPreference) findPreference("pref_cover_mode");
 
             if (isApp) {
                 mPrefHide.setChecked(CustomAppFilter.isHiddenApp(context, mKey));
                 mPrefHide.setOnPreferenceChangeListener(this);
             } else {
                 screen.removePreference(mPrefHide);
-            }
-
-            if (!isApp || !prefs.getDrawerTabs().isEnabled()) {
-                screen.removePreference(mTabsPref);
-            } else {
-                mTabsPref.setComponentKey(mKey);
-                mTabsPref.loadSummary();
-            }
-
-            if (mProvider != null && mProvider.supportsSwipeUp(itemInfo)) {
-                String previousSwipeUpAction = mProvider.getSwipeUpAction(itemInfo);
-                mSwipeUpPref.setValue(previousSwipeUpAction);
-                mSwipeUpPref.setOnSelectHandler(gestureHandler -> {
-                    onSelectHandler(gestureHandler);
-                    return null;
-                });
-            } else {
-                getPreferenceScreen().removePreference(mSwipeUpPref);
-            }
-
-            if (mPrefHidePredictions != null) {
-                mPrefHidePredictions.setChecked(CustomAppPredictor.isHiddenApp(context, mKey));
-                mPrefHidePredictions.setOnPreferenceChangeListener(this);
             }
 
             if (prefs.getShowDebugInfo() && mKey != null && mKey.componentName != null) {
@@ -264,92 +229,7 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
                 getPreferenceScreen().removePreference(getPreferenceScreen().findPreference("debug"));
             }
 
-            mPrefHidePredictions = (SwitchPreference) getPreferenceScreen()
-                    .findPreference(PREF_HIDE_FROM_PREDICTIONS);
-            if ((!prefs.getShowPredictions() || HIDE_PREDICTION_OPTION)
-                    && mPrefHidePredictions != null) {
-                getPreferenceScreen().removePreference(mPrefHidePredictions);
-            }
-
-            if (itemInfo instanceof FolderInfo) {
-                mPrefCoverMode.setChecked(((FolderInfo) itemInfo).isCoverMode());
-            } else {
-                getPreferenceScreen().removePreference(mPrefCoverMode);
-            }
-
             // TODO: Add link to edit bottom sheet for drawer folder
-        }
-
-        private void onSelectHandler(GestureHandler handler) {
-            previousHandler = selectedHandler;
-            selectedHandler = handler;
-            if (handler.getConfigIntent() != null) {
-                setForceOpen.run();
-                startActivityForResult(handler.getConfigIntent(), PrefsFragment.requestCode);
-            } else {
-                updatePref();
-            }
-        }
-
-        @Override
-        public void onActivityResult(int requestCode, int resultCode, Intent data) {
-            if (requestCode == PrefsFragment.requestCode) {
-                if (resultCode == Activity.RESULT_OK) {
-                    selectedHandler.onConfigResult(data);
-                    updatePref();
-                } else {
-                    selectedHandler = previousHandler;
-                }
-                reopen.run();
-            } else {
-                unsetForceOpen.run();
-            }
-        }
-
-        private void updatePref() {
-            if (mProvider != null && selectedHandler != null) {
-                setForceOpen.run();
-                String stringValue;
-                if (selectedHandler instanceof BlankGestureHandler) {
-                    stringValue = null;
-                } else {
-                    stringValue = selectedHandler.toString();
-                }
-
-                Dialog dialog = mSwipeUpPref.getDialog();
-                if (dialog != null) {
-                    dialog.dismiss();
-                }
-                mSwipeUpPref.setValue(stringValue);
-                unsetForceOpen.run();
-            }
-        }
-
-        @SuppressWarnings({"ConstantConditions", "unchecked"})
-        @Override
-        public void onDetach() {
-            super.onDetach();
-
-            if (mProvider != null && selectedHandler != null) {
-                String stringValue = selectedHandler.toString();
-
-                CustomInfoProvider provider = CustomInfoProvider.Companion.forItem(getActivity(), itemInfo);
-                provider.setSwipeUpAction(itemInfo, stringValue);
-            }
-
-            if (mTabsPref.getEdited()) {
-                prefs.getDrawerTabs().saveToJson();
-            }
-
-            if (itemInfo instanceof FolderInfo) {
-                FolderInfo folderInfo = (FolderInfo) itemInfo;
-                boolean coverEnabled = mPrefCoverMode.isChecked();
-                if (folderInfo.isCoverMode() != coverEnabled) {
-                    Launcher launcher = Launcher.getLauncher(getActivity());
-                    folderInfo.setCoverMode(coverEnabled, launcher.getModelWriter());
-                    folderInfo.onIconChanged();
-                }
-            }
         }
 
         @Override
@@ -359,9 +239,8 @@ public class CustomBottomSheet extends WidgetsBottomSheet {
             switch (preference.getKey()) {
                 case PREF_HIDE:
                     CustomAppFilter.setComponentNameState(launcher, mKey, enabled);
+                    hidden = enabled;
                     break;
-                case PREF_HIDE_FROM_PREDICTIONS:
-                    CustomAppPredictor.setComponentNameState(launcher, mKey, enabled);
             }
             return true;
         }

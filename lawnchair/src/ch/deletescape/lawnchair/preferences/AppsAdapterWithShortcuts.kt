@@ -69,7 +69,7 @@ open class AppsAdapterWithShortcuts(
 
     init {
         if (iconProvider == null) {
-            iconProvider = IconProvider.newInstance(context)
+            iconProvider = LauncherAppState.getInstanceNoCreate().getIconCache().getIconProvider()
         }
         Handler(LauncherModel.getWorkerLooper()).postAtFrontOfQueue(::loadAppsList)
     }

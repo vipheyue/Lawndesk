@@ -23,7 +23,6 @@ import android.view.MotionEvent
 import ch.deletescape.lawnchair.lawnchairPrefs
 import com.android.launcher3.ExtendedEditText
 
-// TODO: use proper font in the drawer
 class FolderNameEditText(context: Context, attrs: AttributeSet?) : ExtendedEditText(context, attrs) {
 
     private val lockDesktop = context.lawnchairPrefs.lockDesktop

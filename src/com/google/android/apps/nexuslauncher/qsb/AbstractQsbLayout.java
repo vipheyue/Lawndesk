@@ -341,9 +341,6 @@ public abstract class AbstractQsbLayout extends FrameLayout implements OnSharedP
         Builder builder = new Builder(i);
         builder.shadowBlur = f;
         builder.keyShadowDistance = f2;
-        if (Do && this instanceof HotseatQsbWidget) {
-            builder.ambientShadowAlpha *= 2;
-        }
         if (!withShadow) {
             builder.ambientShadowAlpha = 0;
         }
@@ -650,7 +647,6 @@ public abstract class AbstractQsbLayout extends FrameLayout implements OnSharedP
     }
 
     public boolean useTwoBubbles() {
-        return mMicIconView.getVisibility() == View.VISIBLE && Utilities
-                .getLawnchairPrefs(mActivity).getDualBubbleSearch();
+        return false;
     }
 }

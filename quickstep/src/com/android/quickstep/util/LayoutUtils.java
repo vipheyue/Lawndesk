@@ -43,15 +43,8 @@ public class LayoutUtils {
         if (dp.isVerticalBarLayout()) {
             extraSpace = 0;
         } else {
-            LawnchairPreferences prefs = Utilities.getLawnchairPrefs(context);
-            if (prefs.getShowPredictions()) {
-                Resources res = context.getResources();
-                int qsbHeight = res.getDimensionPixelSize(R.dimen.qsb_widget_height);
-                extraSpace = OverviewState.getDefaultSwipeHeight(dp)
-                        + qsbHeight + dp.verticalDragHandleSizePx;
-            } else {
-                extraSpace = dp.hotseatBarSizePx + dp.verticalDragHandleSizePx;
-            }
+            Resources res = context.getResources();
+            extraSpace = dp.hotseatBarSizePx + res.getDimension(R.dimen.vertical_drag_handle_size);
         }
         calculateTaskSize(context, dp, extraSpace, MULTI_WINDOW_STRATEGY_HALF_SCREEN, outRect);
     }

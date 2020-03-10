@@ -28,8 +28,6 @@ import android.support.annotation.IntDef;
 import android.view.View.AccessibilityDelegate;
 
 import com.android.launcher3.DeviceProfile.OnDeviceProfileChangeListener;
-import com.android.launcher3.logging.UserEventDispatcher;
-import com.android.launcher3.logging.UserEventDispatcher.UserEventDelegate;
 import com.android.launcher3.uioverrides.UiFactory;
 import com.android.launcher3.userevent.nano.LauncherLogProto;
 import com.android.launcher3.util.SystemUiController;
@@ -39,7 +37,7 @@ import java.io.PrintWriter;
 import java.lang.annotation.Retention;
 import java.util.ArrayList;
 
-public abstract class BaseActivity extends Activity implements UserEventDelegate{
+public abstract class BaseActivity extends Activity {
 
     public static final int INVISIBLE_BY_STATE_HANDLER = 1 << 0;
     public static final int INVISIBLE_BY_APP_TRANSITIONS = 1 << 1;
@@ -69,7 +67,6 @@ public abstract class BaseActivity extends Activity implements UserEventDelegate
             new ArrayList<>();
 
     protected DeviceProfile mDeviceProfile;
-    protected UserEventDispatcher mUserEventDispatcher;
     protected SystemUiController mSystemUiController;
 
     private static final int ACTIVITY_STATE_STARTED = 1 << 0;
@@ -103,13 +100,6 @@ public abstract class BaseActivity extends Activity implements UserEventDelegate
     }
 
     public void modifyUserEvent(LauncherLogProto.LauncherEvent event) {}
-
-    public final UserEventDispatcher getUserEventDispatcher() {
-        if (mUserEventDispatcher == null) {
-            mUserEventDispatcher = UserEventDispatcher.newInstance(this, mDeviceProfile, this);
-        }
-        return mUserEventDispatcher;
-    }
 
     public boolean isInMultiWindowModeCompat() {
         return Utilities.ATLEAST_NOUGAT && isInMultiWindowMode();

@@ -158,7 +158,6 @@
     <string name="theme_title">主題</string>
     <string name="theme_automatic">自動</string>
     <string name="theme_default">默認</string>
-    <string name="theme_light">光</string>
     <string name="theme_dark">黑暗</string>
     <string name="pref_open_source_licenses_title">開放原始碼授權</string>
     <string name="all_apps_personal_tab" msgid="4190252696685155002">"個人"</string>

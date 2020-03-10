@@ -33,7 +33,7 @@ import org.json.JSONArray
 import java.lang.Exception
 
 abstract class WebSearchProvider(context: Context) : SearchProvider(context) {
-    protected val client = OkHttpClientBuilder().build(context)
+    protected val client = OkHttpClientBuilder().build(context, 3)
 
     override val supportsVoiceSearch = false
     override val supportsAssistant = false
@@ -49,8 +49,8 @@ abstract class WebSearchProvider(context: Context) : SearchProvider(context) {
 
     override fun startSearch(callback: (intent: Intent) -> Unit){
         val launcher = LauncherAppState.getInstanceNoCreate().launcher
-        launcher.stateManager.goToState(LauncherState.ALL_APPS, true) {
-            launcher.appsView.searchUiManager.startSearch()
+        launcher.stateManager.goToState(LauncherState.SEARCH, true) {
+            launcher.searchView.searchUiManager.startSearch()
         }
     }
 

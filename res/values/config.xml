@@ -9,7 +9,7 @@
 
     <!-- A string pointer to the original app name string. This allows derived projects to
      easily override the app name without providing all translations -->
-    <string name="derived_app_name" translatable="false">@string/app_name_lawnchair</string>
+    <string name="derived_app_name" translatable="false">@string/launcher_name</string>
 
     <!-- String representing the intent for search on the apps market. To specify a query, add
     q=<query> to the data to the intent -->
@@ -117,9 +117,6 @@
     <!-- Name of a drawable factory class. -->
     <string name="drawable_factory_class" translatable="false">ch.deletescape.lawnchair.iconpack.LawnchairDrawableFactory</string>
 
-    <!-- Name of a user event dispatcher class. -->
-    <string name="user_event_dispatcher_class" translatable="false">com.google.android.apps.nexuslauncher.CustomAppPredictor</string>
-
     <!-- Name of a custom shortcut class. -->
     <string name="custom_shortcut_class" translatable="false">com.google.android.apps.nexuslauncher.CustomEditShortcut</string>
 
@@ -176,7 +173,6 @@
 
 <!-- QSB IDs. DO not change -->
     <item type="id" name="search_container_workspace" />
-    <item type="id" name="search_container_hotseat" />
     <item type="id" name="search_container_all_apps" />
 
 <!-- View ID to use for blocked area on the first screen -->

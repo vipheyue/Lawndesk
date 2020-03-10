@@ -71,10 +71,10 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm {
         final ArrayList<ComponentKey> result = getTitleMatchResult(query);
         final List<String> suggestions = getSuggestions(query);
         mResultHandler.post(new Runnable() {
-
             @Override
             public void run() {
-                callback.onSearchResult(query, result, suggestions);
+                callback.onSearchResult(query, result);
+                callback.onSuggestions(suggestions);
             }
         });
     }

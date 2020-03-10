@@ -6,7 +6,7 @@
     <string name="app_donate_url" translatable="false">https://play.google.com/store/apps/details?id=amirz.donation</string>
     <string name="special_greeting" translatable="false">Hello Jane! Lots of love from the Lawnchair team.</string>
     <string name="action_open_notifications_class" translatable="false">ch.deletescape.lawnchair.gestures.handlers.NotificationsOpenGestureHandler</string>
-    <string name="action_open_drawer_class" translatable="false">ch.deletescape.lawnchair.gestures.handlers.OpenDrawerGestureHandler</string>
+    <string name="action_open_search_class" translatable="false">ch.deletescape.lawnchair.gestures.handlers.StartAppSearchGestureHandler</string>
     <string name="action_open_overview_class" translatable="false">ch.deletescape.lawnchair.gestures.handlers.OpenOverviewGestureHandler</string>
     <string name="action_do_nothing_class" translatable="false">ch.deletescape.lawnchair.gestures.BlankGestureHandler</string>
     <string name="default_owm_key" translatable="false">17a6438b1d63d5b05f7039e7cb52cde7</string>
@@ -84,7 +84,7 @@
     <string name="general_pref_title">Desktop</string>
     <string name="general_pref_summary">Layout, Lock Desktop, Transitions</string>
 
-    <string name="grid_size">Icon Grid</string>
+    <string name="grid_size">Grid Size</string>
     <string name="grid_size_width">Width</string>
     <string name="grid_size_height">Height</string>
     <string name="num_hotseat_icons_pref_title">Icon Count</string>
@@ -259,6 +259,9 @@
     <string name="category_knowledge_and_reference">Knowledge &amp; Reference</string>
     <string name="category_lifestyle">Shopping &amp; Lifestyle</string>
     <string name="category_music">Music</string>
+    <string name="category_video">Video</string>
+    <string name="category_finance">Finance</string>
+    <string name="category_business">Business</string>
     <string name="category_news">News</string>
     <string name="category_personalization">Personalization</string>
     <string name="category_photography">Photography</string>
@@ -306,14 +309,14 @@
     <string name="google">Google App</string>
     <string name="search_provider_google_go">Google Go</string>
     <string name="web_search_google">Google</string>
-    <string name="web_search_ddg">DuckDuckGo (in Browser)</string>
-    <string name="web_search_startpage">Startpage.com (in Browser)</string>
-    <string name="web_search_bing">Bing (in Browser)</string>
-    <string name="web_search_qwant">Qwant (in Browser)</string>
-    <string name="web_search_ecosia">Ecosia (in Browser)</string>
-    <string name="web_search_yandex">Yandex (in Browser)</string>
-    <string name="web_search_naver">Naver (in Browser)</string>
-    <string name="web_search_baidu">Baidu (in Browser)</string>
+    <string name="web_search_ddg">DuckDuckGo</string>
+    <string name="web_search_startpage">Startpage.com</string>
+    <string name="web_search_bing">Bing</string>
+    <string name="web_search_qwant">Qwant</string>
+    <string name="web_search_ecosia">Ecosia</string>
+    <string name="web_search_yandex">Yandex</string>
+    <string name="web_search_naver">Naver</string>
+    <string name="web_search_baidu">Baidu</string>
     <string name="search_provider_yandex">Yandex</string>
     <string name="search_provider_ddg">DuckDuckGo</string>
     <string name="search_provider_bing">Bing</string>

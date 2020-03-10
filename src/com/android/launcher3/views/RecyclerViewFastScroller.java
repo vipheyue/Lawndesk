@@ -291,16 +291,7 @@ public class RecyclerViewFastScroller extends View {
             mPopupSectionName = sectionName;
             mPopupView.setText(sectionName);
         }
-        int color = thumbInfo.color;
-        if (color != 0 && prefs.getSortDrawerByColors()) {
-            setColor(color, Color.WHITE);
-            if (!prefs.getShowDebugInfo()) {
-                mPopupSectionName = "";
-                mPopupView.setText("");
-            }
-        } else {
-            animatePopupVisibility(!sectionName.isEmpty());
-        }
+        animatePopupVisibility(!sectionName.isEmpty());
         updatePopupY(lastY);
         mLastTouchY = boundedY;
         setThumbOffsetY((int) mLastTouchY);

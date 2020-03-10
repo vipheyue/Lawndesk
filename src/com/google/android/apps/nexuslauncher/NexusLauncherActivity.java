@@ -35,14 +35,6 @@ public class NexusLauncherActivity extends Launcher {
         return mLauncher.mClient;
     }
 
-    public void playQsbAnimation() {
-        mLauncher.mQsbAnimationController.dZ();
-    }
-
-    public AnimatorSet openQsb() {
-        return mLauncher.mQsbAnimationController.openQsb();
-    }
-
     public void registerSmartspaceView(SmartspaceView smartspace) {
         mLauncher.registerSmartspaceView(smartspace);
     }

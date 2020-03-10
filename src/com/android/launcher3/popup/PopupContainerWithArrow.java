@@ -70,7 +70,6 @@ import com.android.launcher3.shortcuts.ShortcutDragPreviewProvider;
 import com.android.launcher3.touch.ItemLongClickListener;
 import com.android.launcher3.util.PackageUserKey;
 
-import com.google.android.apps.nexuslauncher.allapps.ActionView;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -145,8 +144,6 @@ public class PopupContainerWithArrow extends ArrowPopup implements DragSource,
 
     @Override
     public void logActionCommand(int command) {
-        mLauncher.getUserEventDispatcher().logActionCommand(
-                command, mOriginalIcon, ContainerType.DEEPSHORTCUTS);
     }
 
     @Override
@@ -154,8 +151,6 @@ public class PopupContainerWithArrow extends ArrowPopup implements DragSource,
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             DragLayer dl = mLauncher.getDragLayer();
             if (!dl.isEventOverView(this, ev)) {
-                mLauncher.getUserEventDispatcher().logActionTapOutside(
-                        LoggerUtils.newContainerTarget(ContainerType.DEEPSHORTCUTS));
                 close(true);
 
                 // We let touches on the original icon go through so that users can launch
@@ -178,7 +173,7 @@ public class PopupContainerWithArrow extends ArrowPopup implements DragSource,
             return null;
         }
         ItemInfo itemInfo = (ItemInfo) icon.getTag();
-        if (!DeepShortcutManager.supportsEdit(itemInfo) || icon instanceof ActionView) {
+        if (!DeepShortcutManager.supportsEdit(itemInfo)) {
             return null;
         }
 
@@ -437,7 +432,6 @@ public class PopupContainerWithArrow extends ArrowPopup implements DragSource,
                     // Make sure we keep the original icon hidden while it is being dragged.
                     setOriginalIconVisibility(INVISIBLE);
                 } else {
-                    mLauncher.getUserEventDispatcher().logDeepShortcutsOpen(mOriginalIcon);
                     if (!mIsAboveIcon) {
                         // Show the icon but keep the text hidden.
                         setOriginalIconVisibility(VISIBLE);
@@ -522,18 +516,6 @@ public class PopupContainerWithArrow extends ArrowPopup implements DragSource,
         }
     }
 
-    @Override
-    public void fillInLogContainerData(View v, ItemInfo info, Target target, Target targetParent) {
-        if (info == NOTIFICATION_ITEM_INFO) {
-            target.itemType = ItemType.NOTIFICATION;
-        } else {
-            target.itemType = ItemType.DEEPSHORTCUT;
-            target.rank = info.rank;
-        }
-        targetParent.containerType = ContainerType.DEEPSHORTCUTS;
-    }
-
-    @Override
     protected void onCreateCloseAnimation(AnimatorSet anim) {
         // Animate original icon's text back in.
         anim.play(mOriginalIcon.createTextAlphaAnimator(true /* fadeIn */));

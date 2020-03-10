@@ -45,6 +45,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     @IntDef(flag = true, value = {
             TYPE_FOLDER,
+            TYPE_SEARCH,
             TYPE_ACTION_POPUP,
             TYPE_WIDGETS_BOTTOM_SHEET,
             TYPE_WIDGET_RESIZE_FRAME,
@@ -80,10 +81,13 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
     // Custom popups
     public static final int TYPE_SETTINGS_SHEET = 1 << 12;
 
+    // Search
+    public static final int TYPE_SEARCH = 1 << 13;
+
     public static final int TYPE_ALL = TYPE_FOLDER | TYPE_ACTION_POPUP
             | TYPE_WIDGETS_BOTTOM_SHEET | TYPE_WIDGET_RESIZE_FRAME | TYPE_WIDGETS_FULL_SHEET
             | TYPE_QUICKSTEP_PREVIEW | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE | TYPE_TASK_MENU
-            | TYPE_OPTIONS_POPUP | TYPE_SETTINGS_SHEET | TYPE_SNACKBAR;
+            | TYPE_OPTIONS_POPUP | TYPE_SETTINGS_SHEET | TYPE_SNACKBAR | TYPE_SEARCH;
 
     // Type of popups which should be kept open during launcher rebind
     public static final int TYPE_REBIND_SAFE = TYPE_WIDGETS_FULL_SHEET
@@ -116,10 +120,6 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     public final void close(boolean animate) {
         animate &= !Utilities.isPowerSaverPreventingAnimation(getContext());
-        if (mIsOpen) {
-            BaseActivity.fromContext(getContext()).getUserEventDispatcher()
-                    .resetElapsedContainerMillis("container closed");
-        }
         handleClose(animate);
         mIsOpen = false;
     }

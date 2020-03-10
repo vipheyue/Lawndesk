@@ -65,8 +65,6 @@ public class FolderInfo extends ItemInfo {
      */
     public static final int FLAG_MULTI_PAGE_ANIMATION = 0x00000004;
 
-    public static final int FLAG_COVER_MODE = 0x00000008;
-
     public int options;
 
     /**
@@ -202,18 +200,11 @@ public class FolderInfo extends ItemInfo {
         if (icn != null)  {
             return icn;
         }
-        if (isCoverMode()) {
-            return DrawableFactory.get(context).newIcon(getCoverInfo());
-        }
         return getFolderIcon(launcher);
     }
 
     public Drawable getDefaultIcon(Launcher launcher) {
-        if (isCoverMode()) {
-            return new FastBitmapDrawable(getCoverInfo().iconBitmap);
-        } else {
-            return getFolderIcon(launcher);
-        }
+        return getFolderIcon(launcher);
     }
 
     public Drawable getFolderIcon(Launcher launcher) {
@@ -233,11 +224,10 @@ public class FolderInfo extends ItemInfo {
     }
 
     public boolean useIconMode(Context context) {
-        return isCoverMode() || hasCustomIcon(context);
+        return hasCustomIcon(context);
     }
 
     public boolean usingCustomIcon(Context context) {
-        if (isCoverMode()) return false;
         Launcher launcher = LawnchairLauncher.getLauncher(context);
         return getIconInternal(launcher) != null;
     }
@@ -255,27 +245,9 @@ public class FolderInfo extends ItemInfo {
         }
     }
 
-    public boolean isCoverMode() {
-        return hasOption(FLAG_COVER_MODE);
-    }
-
-    public void setCoverMode(boolean enable, ModelWriter modelWriter) {
-        setOption(FLAG_COVER_MODE, enable, modelWriter);
-    }
-
-    public ShortcutInfo getCoverInfo() {
-        return firstItemProvider.getFirstItem();
-    }
-
     public CharSequence getIconTitle() {
         if (!TextUtils.equals(Folder.getDefaultFolderName(), title)) {
             return title;
-        } else if (isCoverMode()) {
-            ShortcutInfo info = getCoverInfo();
-            if (info.customTitle != null) {
-                return info.customTitle;
-            }
-            return info.title;
         } else {
             return Folder.getDefaultFolderName();
         }

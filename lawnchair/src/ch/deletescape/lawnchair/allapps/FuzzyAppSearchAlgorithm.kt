@@ -40,19 +40,24 @@ class FuzzyAppSearchAlgorithm(private val context: Context, private val apps: Li
         SearchAlgorithm {
 
     private var resultHandler: Handler = Handler()
-    private var baseFilter: AppFilter = LawnchairAppFilter(context)
+    private var suggestionsHandler: Handler = Handler()
+    private var filter: AppFilter = AppFilter.newInstance(context)
 
     override fun doSearch(query: String, callback: AllAppsSearchBarController.Callbacks) {
-        val res = query(context, query, apps, baseFilter).map { it.toComponentKey() }
-        val suggestions = getSuggestions(query)
+        val res = query(context, query, apps, filter).map { it.toComponentKey() }
         resultHandler.post {
-            callback.onSearchResult(query, ArrayList(res), suggestions)
+            callback.onSearchResult(query, ArrayList(res))
+        }
+        suggestionsHandler.post {
+            val suggestions = getSuggestions(query)
+            callback.onSuggestions(suggestions)
         }
     }
 
     override fun cancel(interruptActiveRequests: Boolean) {
         if (interruptActiveRequests) {
             resultHandler.removeCallbacksAndMessages(null)
+            suggestionsHandler.removeCallbacksAndMessages(null)
         }
     }
 

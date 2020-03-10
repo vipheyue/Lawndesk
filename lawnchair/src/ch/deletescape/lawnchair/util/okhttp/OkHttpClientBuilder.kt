@@ -21,6 +21,7 @@ import android.content.Context
 import ch.deletescape.lawnchair.lawnchairPrefs
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
 
 class OkHttpClientBuilder {
     private val builder = OkHttpClient.Builder()
@@ -31,7 +32,10 @@ class OkHttpClientBuilder {
         return this
     }
 
-    fun build(context: Context?): OkHttpClient {
+    fun build(context: Context?, timeout : Long = 10): OkHttpClient {
+        builder.connectTimeout(timeout, TimeUnit.SECONDS)
+                .writeTimeout(timeout, TimeUnit.SECONDS)
+                .readTimeout(timeout, TimeUnit.SECONDS)
         if (queryParams.isNotEmpty()) {
             builder.addInterceptor {
                 val urlBuilder = it.request().url.newBuilder()

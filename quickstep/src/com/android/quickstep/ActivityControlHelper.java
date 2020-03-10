@@ -21,8 +21,6 @@ import static com.android.launcher3.LauncherAnimUtils.OVERVIEW_TRANSITION_MS;
 import static com.android.launcher3.LauncherAnimUtils.SCALE_PROPERTY;
 import static com.android.launcher3.LauncherState.FAST_OVERVIEW;
 import static com.android.launcher3.LauncherState.OVERVIEW;
-import static com.android.launcher3.allapps.AllAppsTransitionController.ALL_APPS_PROGRESS;
-import static com.android.launcher3.allapps.AllAppsTransitionController.SCRIM_PROGRESS;
 import static com.android.launcher3.anim.Interpolators.LINEAR;
 import static com.android.quickstep.TouchConsumer.INTERACTION_NORMAL;
 import static com.android.quickstep.TouchConsumer.INTERACTION_QUICK_SCRUB;
@@ -54,8 +52,6 @@ import com.android.launcher3.LauncherInitListener;
 import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.allapps.AllAppsTransitionController;
-import com.android.launcher3.allapps.DiscoveryBounce;
 import com.android.launcher3.anim.AnimationSuccessListener;
 import com.android.launcher3.anim.AnimatorPlaybackController;
 import com.android.launcher3.dragndrop.DragLayer;
@@ -132,16 +128,6 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
 
     AlphaProperty getAlphaProperty(T activity);
 
-    /**
-     * Must return a non-null controller is supportsLongSwipe was true.
-     */
-    LongSwipeHelper getLongSwipeController(T activity, RemoteAnimationTargetSet targetSet);
-
-    /**
-     * Used for containerType in {@link com.android.launcher3.logging.UserEventDispatcher}
-     */
-    int getContainerType();
-
     class LauncherActivityControllerHelper implements ActivityControlHelper<Launcher> {
 
         @Override
@@ -205,7 +191,6 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
         public void onSwipeUpComplete(Launcher activity) {
             // Re apply state in case we did something funky during the transition.
             activity.getStateManager().reapplyState();
-            DiscoveryBounce.showForOverviewIfNeeded(activity);
         }
 
         @Override
@@ -222,11 +207,7 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
             if (!activityVisible) {
                 // Since the launcher is not visible, we can safely reset the scroll position.
                 // This ensures then the next swipe up to all-apps starts from scroll 0.
-                activity.getAppsView().reset(false /* animate */);
                 activity.getStateManager().goToState(OVERVIEW, false);
-
-                // Optimization, hide the all apps view to prevent layout while initializing
-                activity.getAppsView().getContentView().setVisibility(View.GONE);
             }
 
             return new AnimationFactory() {
@@ -259,33 +240,6 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
             }
 
             AnimatorSet anim = new AnimatorSet();
-
-            if (!activity.getDeviceProfile().isVerticalBarLayout()) {
-                AllAppsTransitionController controller = activity.getAllAppsController();
-                float scrollRange = Math.max(controller.getShiftRange(), 1);
-                float progressDelta = (transitionLength / scrollRange);
-
-                float endProgress = endState.getVerticalProgress(activity);
-                float startProgress = endProgress + progressDelta;
-                ObjectAnimator shiftAnim = ObjectAnimator.ofFloat(
-                        controller, ALL_APPS_PROGRESS, startProgress, endProgress);
-                shiftAnim.setInterpolator(LINEAR);
-                anim.play(shiftAnim);
-
-                float scrimEndProgress = Utilities.getScrimProgress(activity, endState, endProgress);
-                ObjectAnimator scrimAnim = ObjectAnimator.ofFloat(
-                        controller, SCRIM_PROGRESS, scrimEndProgress + progressDelta, scrimEndProgress);
-                scrimAnim.setInterpolator(LINEAR);
-                anim.play(scrimAnim);
-
-                // Since we are changing the start position of the UI, reapply the state, at the end
-                anim.addListener(new AnimationSuccessListener() {
-                    @Override
-                    public void onAnimationSuccess(Animator animator) {
-                        activity.getStateManager().reapplyState();
-                    }
-                });
-            }
 
             if (interactionType == INTERACTION_NORMAL) {
                 playScaleDownAnim(anim, activity);
@@ -357,12 +311,6 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
         public boolean switchToRecentsIfVisible(boolean fromRecentsButton) {
             Launcher launcher = getVisibleLaucher();
             if (launcher != null) {
-                if (fromRecentsButton) {
-                    launcher.getUserEventDispatcher().logActionCommand(
-                            LauncherLogProto.Action.Command.RECENTS_BUTTON,
-                            getContainerType(),
-                            LauncherLogProto.ContainerType.TASKSWITCHER);
-                }
                 launcher.getStateManager().goToState(OVERVIEW);
                 return true;
             }
@@ -390,25 +338,10 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
         }
 
         @Override
-        public LongSwipeHelper getLongSwipeController(Launcher activity,
-                RemoteAnimationTargetSet targetSet) {
-            if (activity.getDeviceProfile().isVerticalBarLayout()) {
-                return null;
-            }
-            return new LongSwipeHelper(activity, targetSet);
-        }
-
-        @Override
         public AlphaProperty getAlphaProperty(Launcher activity) {
             return activity.getDragLayer().getAlphaProperty(DragLayer.ALPHA_INDEX_SWIPE_UP);
         }
 
-        @Override
-        public int getContainerType() {
-            final Launcher launcher = getVisibleLaucher();
-            return launcher != null ? launcher.getStateManager().getState().containerType
-                    : LauncherLogProto.ContainerType.APP;
-        }
     }
 
     class FallbackActivityControllerHelper implements ActivityControlHelper<RecentsActivity> {
@@ -577,20 +510,10 @@ public interface ActivityControlHelper<T extends BaseDraggingActivity> {
         }
 
         @Override
-        public LongSwipeHelper getLongSwipeController(RecentsActivity activity,
-                RemoteAnimationTargetSet targetSet) {
-            return null;
-        }
-
-        @Override
         public AlphaProperty getAlphaProperty(RecentsActivity activity) {
             return activity.getDragLayer().getAlphaProperty(0);
         }
 
-        @Override
-        public int getContainerType() {
-            return LauncherLogProto.ContainerType.SIDELOADED_LAUNCHER;
-        }
     }
 
     interface LayoutListener {

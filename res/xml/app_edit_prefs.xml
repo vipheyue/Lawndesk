@@ -22,31 +22,6 @@
         android:defaultValue="false"
         android:persistent="false"/>
 
-    <ch.deletescape.lawnchair.preferences.MultiSelectTabPreference
-        android:key="pref_show_in_tabs"
-        android:title="@string/show_in_tabs"/>
-
-    <ch.deletescape.lawnchair.gestures.ui.LauncherGesturePreference
-        android:key="pref_swipe_up_gesture"
-        android:title="@string/gesture_swipe_up"
-        android:dependency="pref_cover_mode"/>
-
-    <ch.deletescape.lawnchair.preferences.StyledSwitchPreference
-        android:key="pref_cover_mode"
-        android:title="@string/folder_cover_mode"
-        android:summary="@string/folder_cover_mode_desc"
-        android:defaultValue="false"
-        android:disableDependentsState="true"
-        android:persistent="false"/>
-
-    <!--
-    <ch.deletescape.lawnchair.preferences.StyledSwitchPreference
-        android:key="pref_app_prediction_hide"
-        android:title="@string/hide_from_predictions"
-        android:summary="@string/hide_from_predictions_summary"
-        android:defaultValue="false"
-        android:persistent="false" /> -->
-
     <ch.deletescape.lawnchair.preferences.LauncherStyledPreferenceCategory
         android:key="debug"
         android:title="@string/developer_options_title"

@@ -19,7 +19,7 @@ package com.android.launcher3.model;
 import static com.android.launcher3.ItemInfoWithIcon.FLAG_DISABLED_LOCKED_USER;
 import static com.android.launcher3.ItemInfoWithIcon.FLAG_DISABLED_SAFEMODE;
 import static com.android.launcher3.ItemInfoWithIcon.FLAG_DISABLED_SUSPENDED;
-import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
+import static com.android.launcher3.folder.NineFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 import static com.android.launcher3.model.LoaderResults.filterCurrentWorkspaceItems;
 
 import android.appwidget.AppWidgetProviderInfo;
@@ -40,9 +40,9 @@ import android.util.Log;
 import android.util.LongSparseArray;
 import android.util.MutableInt;
 
+import ch.deletescape.lawnchair.LawnchairPreferences;
 import ch.deletescape.lawnchair.iconpack.IconPackManager;
 import ch.deletescape.lawnchair.model.HomeWidgetMigrationTask;
-import ch.deletescape.lawnchair.sesame.Sesame;
 import com.android.launcher3.AllAppsList;
 import com.android.launcher3.AppInfo;
 import com.android.launcher3.FolderInfo;
@@ -167,6 +167,10 @@ public class LoaderTask implements Runnable {
 
         TraceHelper.beginSection(TAG);
         try (LauncherModel.LoaderTransaction transaction = mApp.getModel().beginLoader(this)) {
+
+            TraceHelper.partitionSection(TAG, "step 1.0: loading all apps");
+            loadAllApps();
+
             TraceHelper.partitionSection(TAG, "step 1.1: loading workspace");
             loadWorkspace();
 
@@ -183,16 +187,12 @@ public class LoaderTask implements Runnable {
             waitForIdle();
             verifyNotStopped();
 
-            // second step
-            TraceHelper.partitionSection(TAG, "step 2.1: loading all apps");
-            loadAllApps();
-
-            TraceHelper.partitionSection(TAG, "step 2.2: Binding all apps");
-            verifyNotStopped();
+            TraceHelper.partitionSection(TAG, "step 2.1: Binding all apps");
             mResults.bindAllApps();
 
+            // second step
             verifyNotStopped();
-            TraceHelper.partitionSection(TAG, "step 2.3: Update icon cache");
+            TraceHelper.partitionSection(TAG, "step 2.2: Update icon cache");
             updateIconCache();
 
             // Take a break
@@ -227,6 +227,12 @@ public class LoaderTask implements Runnable {
             TraceHelper.partitionSection(TAG, "Cancelled");
         }
         TraceHelper.endSection(TAG);
+
+        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(mApp.getContext());
+        if (!prefs.getDesktopInitialized()) {
+            mApp.getLauncher().dismissLoading();
+        }
+
     }
 
     public synchronized void stopLocked() {
@@ -267,8 +273,7 @@ public class LoaderTask implements Runnable {
         }
 
         Log.d(TAG, "loadWorkspace: loading default favorites");
-        LauncherSettings.Settings.call(contentResolver,
-                LauncherSettings.Settings.METHOD_LOAD_DEFAULT_FAVORITES);
+        LauncherSettings.Settings.callLoadApps(contentResolver, mBgAllAppsList.data);
 
         synchronized (mBgDataModel) {
             mBgDataModel.clear();
@@ -277,6 +282,7 @@ public class LoaderTask implements Runnable {
                     mPackageInstaller.updateAndGetActiveSessionCache();
             mFirstScreenBroadcast = new FirstScreenBroadcast(installingPkgs);
             mBgDataModel.workspaceScreens.addAll(LauncherModel.loadWorkspaceScreensDb(context));
+            mBgDataModel.folderIDs.addAll(LauncherModel.loadFolderIDsDb(context));
 
             Map<ShortcutKey, ShortcutInfoCompat> shortcutKeyToPinnedShortcuts = new HashMap<>();
             final LoaderCursor c = new LoaderCursor(contentResolver.query(
@@ -391,37 +397,37 @@ public class LoaderTask implements Runnable {
                             boolean validTarget = TextUtils.isEmpty(targetPkg) ||
                                     mLauncherApps.isPackageEnabledForProfile(targetPkg, c.user);
 
-                            if (cn != null && validTarget) {
-                                // If the apk is present and the shortcut points to a specific
-                                // component.
-
-                                // If the component is already present
-                                if (mLauncherApps.isActivityEnabledForProfile(cn, c.user)) {
-                                    // no special handling necessary for this item
-                                    c.markRestored();
-                                } else {
-                                    if (c.hasRestoreFlag(ShortcutInfo.FLAG_AUTOINSTALL_ICON)) {
-                                        // We allow auto install apps to have their intent
-                                        // updated after an install.
-                                        intent = pmHelper.getAppLaunchIntent(targetPkg, c.user);
-                                        if (intent != null) {
-                                            c.restoreFlag = 0;
-                                            c.updater().put(
-                                                    LauncherSettings.Favorites.INTENT,
-                                                    intent.toUri(0)).commit();
-                                            cn = intent.getComponent();
-                                        } else {
-                                            c.markDeleted("Unable to find a launch target");
-                                            continue;
-                                        }
-                                    } else {
-                                        // The app is installed but the component is no
-                                        // longer available.
-                                        c.markDeleted("Invalid component removed: " + cn);
-                                        continue;
-                                    }
-                                }
-                            }
+//                            if (cn != null && validTarget) {
+//                                // If the apk is present and the shortcut points to a specific
+//                                // component.
+//
+//                                // If the component is already present
+//                                if (mLauncherApps.isActivityEnabledForProfile(cn, c.user)) {
+//                                    // no special handling necessary for this item
+//                                    c.markRestored();
+//                                } else {
+//                                    if (c.hasRestoreFlag(ShortcutInfo.FLAG_AUTOINSTALL_ICON)) {
+//                                        // We allow auto install apps to have their intent
+//                                        // updated after an install.
+//                                        intent = pmHelper.getAppLaunchIntent(targetPkg, c.user);
+//                                        if (intent != null) {
+//                                            c.restoreFlag = 0;
+//                                            c.updater().put(
+//                                                    LauncherSettings.Favorites.INTENT,
+//                                                    intent.toUri(0)).commit();
+//                                            cn = intent.getComponent();
+//                                        } else {
+//                                            c.markDeleted("Unable to find a launch target");
+//                                            continue;
+//                                        }
+//                                    } else {
+//                                        // The app is installed but the component is no
+//                                        // longer available.
+//                                        c.markDeleted("Invalid component removed: " + cn);
+//                                        continue;
+//                                    }
+//                                }
+//                            }
                             // else if cn == null => can't infer much, leave it
                             // else if !validPkg => could be restored icon or missing sd-card
 
@@ -539,10 +545,6 @@ public class LoaderTask implements Runnable {
                                     intent.addFlags(
                                         Intent.FLAG_ACTIVITY_NEW_TASK |
                                         Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                                }
-
-                                if(!Sesame.isAvailable(context) && intent.getBooleanExtra(Sesame.EXTRA_TAG, false)) {
-                                    disabledState  |= ShortcutInfo.FLAG_DISABLED_BY_SESAME;
                                 }
                             }
 
@@ -745,6 +747,7 @@ public class LoaderTask implements Runnable {
                 for (long folderId : deletedFolderIds) {
                     mBgDataModel.workspaceItems.remove(mBgDataModel.folders.get(folderId));
                     mBgDataModel.folders.remove(folderId);
+                    mBgDataModel.folderIDs.remove(folderId);
                     mBgDataModel.itemsIdMap.remove(folderId);
                 }
 

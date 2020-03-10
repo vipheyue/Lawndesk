@@ -17,12 +17,14 @@
 
 package ch.deletescape.lawnchair.settings.ui;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
@@ -77,7 +79,9 @@ import ch.deletescape.lawnchair.colors.overrides.ThemedMultiSelectListPreference
 import ch.deletescape.lawnchair.colors.preferences.ColorPickerPreference;
 import ch.deletescape.lawnchair.gestures.ui.GesturePreference;
 import ch.deletescape.lawnchair.gestures.ui.SelectGestureHandlerFragment;
+import ch.deletescape.lawnchair.globalsearch.ui.ExternalSearchProviderPreference;
 import ch.deletescape.lawnchair.globalsearch.ui.SearchProviderPreference;
+import ch.deletescape.lawnchair.globalsearch.ui.SelectExternalSearchProviderFragment;
 import ch.deletescape.lawnchair.globalsearch.ui.SelectSearchProviderFragment;
 import ch.deletescape.lawnchair.iconpack.IconPackManager;
 import ch.deletescape.lawnchair.preferences.ResumablePreference;
@@ -94,6 +98,7 @@ import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.compat.LauncherAppsCompat;
+import com.android.launcher3.folder.Folder;
 import com.android.launcher3.notification.NotificationListener;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.ContentWriter;
@@ -136,7 +141,6 @@ public class SettingsActivity extends SettingsBaseActivity implements
     public final static String SMARTSPACE_PREF = "pref_smartspace";
     public final static String ALLOW_OVERLAP_PREF = "pref_allowOverlap";
     private final static String BRIDGE_TAG = "tag_bridge";
-    private final static String RESET_HIDDEN_ACTIONS_PREF = "pref_reset_hidden_suggested_actions";
 
     public final static String EXTRA_TITLE = "title";
 
@@ -147,6 +151,8 @@ public class SettingsActivity extends SettingsBaseActivity implements
     protected boolean forceSubSettings = false;
 
     private boolean hasPreview = false;
+    @Nullable
+    public static final String APP_VERSION_PREF = "about_app_version";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -579,11 +585,17 @@ public class SettingsActivity extends SettingsBaseActivity implements
 
         private boolean mShowDevOptions;
 
+        public Context context;
+
+        public static final String GESTURE_SCREEN_KEY = "gestures";
+        public static final String SEARCH_SCREEN_KEY = "search";
+
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             mShowDevOptions = Utilities.getLawnchairPrefs(getActivity()).getDeveloperOptionsEnabled();
             getPreferenceManager().setSharedPreferencesName(LauncherFiles.SHARED_PREFERENCES_KEY);
+            context = getActivity();
         }
 
         @Override
@@ -603,10 +615,6 @@ public class SettingsActivity extends SettingsBaseActivity implements
 
         @Override
         public boolean onPreferenceTreeClick(Preference preference) {
-            if (preference.getKey() != null && "about".equals(preference.getKey())) {
-                startActivity(new Intent(getActivity(), SettingsAboutActivity.class));
-                return true;
-            }
             return super.onPreferenceTreeClick(preference);
         }
 
@@ -653,26 +661,32 @@ public class SettingsActivity extends SettingsBaseActivity implements
                             .show(getFragmentManager(), "reset_icons");
                     return true;
                 });
-            } else if (getContent() == R.xml.lawnchair_app_drawer_preferences) {
-                SwitchPreference showActionsPref = (SwitchPreference) findPreference(SHOW_ACTIONS_PREF);
-                Preference resetHiddenActionsPref = findPreference(RESET_HIDDEN_ACTIONS_PREF);
-                resetHiddenActionsPref.setEnabled(showActionsPref.isChecked());
-                showActionsPref.setOnPreferenceClickListener(preference -> {
-                    resetHiddenActionsPref.setEnabled(((SwitchPreference) preference).isChecked());
-                    return false;
-                });
-                resetHiddenActionsPref.setOnPreferenceClickListener(preference -> {
-                    Utilities.getLawnchairPrefs(mContext).getSharedPrefs().edit()
-                            .remove(HIDDEN_ACTIONS_PREF).apply();
-                    return true;
-                });
-                findPreference(SHOW_PREDICTIONS_PREF).setOnPreferenceChangeListener(this);
             } else if (getContent() == R.xml.lawnchair_dev_options_preference) {
                 findPreference("kill").setOnPreferenceClickListener(this);
                 findPreference("addSettingsShortcut").setOnPreferenceClickListener(this);
                 findPreference("currentWeatherProvider").setSummary(
                         Utilities.getLawnchairPrefs(mContext).getWeatherProvider());
                 findPreference("appInfo").setOnPreferenceClickListener(this);
+            } else if (getContent() == R.xml.lawnchair_about_preferences) {
+                findPreference("play_store").setOnPreferenceClickListener(this);
+                findPreference("github").setOnPreferenceClickListener(this);
+                findPreference("based_on").setOnPreferenceClickListener(this);
+
+                try {
+                    PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(mContext.getPackageName(), 0);
+                    findPreference(APP_VERSION_PREF).setSummary(packageInfo.versionName);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            } else if (getContent() == R.xml.lawnchair_smartspace_preferences) {
+                findPreference("download_oneplus_weather").setOnPreferenceClickListener(
+                        new OnPreferenceClickListener() {
+                            @Override
+                            public boolean onPreferenceClick(Preference preference) {
+                                Utilities.openWebPage(getContext(), "https://www.apkmirror.com/apk/oneplus-ltd/oneplus-weather/");
+                                return true;
+                            }
+                        });
             }
         }
 
@@ -682,7 +696,7 @@ public class SettingsActivity extends SettingsBaseActivity implements
             onPreferencesAdded(getPreferenceScreen());
         }
 
-        private int getContent() {
+        public int getContent() {
             return getArguments().getInt(CONTENT_RES_ID);
         }
 
@@ -719,6 +733,8 @@ public class SettingsActivity extends SettingsBaseActivity implements
             final DialogFragment f;
             if (preference instanceof GridSizePreference) {
                 f = GridSizeDialogFragmentCompat.Companion.newInstance(preference.getKey());
+            } else if (preference instanceof FolderGridSizePreference) {
+                f = FolderGridSizeDialogFragmentCompat.Companion.newInstance(preference.getKey());
             } else if (preference instanceof SingleDimensionGridSizePreference) {
                 f = SingleDimensionGridSizeDialogFragmentCompat.Companion
                         .newInstance(preference.getKey());
@@ -728,6 +744,9 @@ public class SettingsActivity extends SettingsBaseActivity implements
             } else if (preference instanceof SearchProviderPreference) {
                 f = SelectSearchProviderFragment.Companion
                         .newInstance((SearchProviderPreference) preference);
+            } else if (preference instanceof ExternalSearchProviderPreference) {
+                f = SelectExternalSearchProviderFragment.Companion
+                    .newInstance((ExternalSearchProviderPreference) preference);
             } else if (preference instanceof PreferenceDialogPreference) {
                 f = PreferenceScreenDialogFragment.Companion
                         .newInstance((PreferenceDialogPreference) preference);
@@ -811,7 +830,7 @@ public class SettingsActivity extends SettingsBaseActivity implements
         public boolean onPreferenceClick(Preference preference) {
             switch (preference.getKey()) {
                 case "kill":
-                    Utilities.killLauncher();
+                    Utilities.restartLauncher(getActivity());
                     break;
                 case "addSettingsShortcut":
                     Utilities.pinSettingsShortcut(getActivity());
@@ -844,6 +863,15 @@ public class SettingsActivity extends SettingsBaseActivity implements
                                     return null;
                                 }
                             });
+                    break;
+                case "github":
+                    Utilities.openWebPage(getActivity(), getResources().getString(R.string.github_url));
+                    break;
+                case "play_store":
+                    Utilities.openWebPage(getActivity(), getResources().getString(R.string.play_url));
+                    break;
+                case "based_on":
+                    Utilities.openWebPage(getActivity(), getResources().getString(R.string.lawnchair_url));
                     break;
             }
             return false;

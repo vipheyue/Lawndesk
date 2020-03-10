@@ -31,7 +31,7 @@
         android:layout_width="24dp"
         android:src="@drawable/ic_search"
         android:layout_gravity="center"
-        android:tint="?android:attr/textColorSecondary"/>
+        android:tint="@android:color/white"/>
     <TextView
         android:id="@+id/suggestion"
         android:layout_width="match_parent"
@@ -40,7 +40,7 @@
         android:focusable="true"
         android:fontFamily="sans-serif-medium"
         android:gravity="center_vertical"
-        android:textColor="?android:attr/textColorSecondary"
+        android:textColor="@android:color/white"
         android:textSize="18sp"
         android:layout_marginStart="10dp"
         android:layout_marginEnd="10dp"

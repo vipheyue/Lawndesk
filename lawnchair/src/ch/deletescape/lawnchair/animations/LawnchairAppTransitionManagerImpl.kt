@@ -55,7 +55,6 @@ import com.android.systemui.shared.system.RemoteAnimationTargetCompat
 import com.android.systemui.shared.system.RemoteAnimationTargetCompat.MODE_CLOSING
 import com.android.systemui.shared.system.RemoteAnimationTargetCompat.MODE_OPENING
 import com.android.systemui.shared.system.SyncRtSurfaceTransactionApplier
-import com.google.android.apps.nexuslauncher.allapps.PredictionsFloatingHeader
 
 @Keep
 @TargetApi(Build.VERSION_CODES.O)
@@ -121,8 +120,7 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
                     loadTask(it.taskId)?.let { task ->
                         val component = TaskUtils.getLaunchComponentKeyForTask(task.key)
                         findIconForComponent(component, useScaleAnim)?.let { icon ->
-                            val v = if (icon is FolderIcon && icon.isCoverMode)
-                                icon.folderName else icon
+                            val v = icon
 
                             iconBounds = getViewBounds(v)
                             val anim = AnimatorSet()
@@ -171,16 +169,6 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
             return
         }
 
-        if (launcher.isInState(LauncherState.ALL_APPS)) run {
-            val contentAnimator = getLauncherContentAnimator(false /* isAppOpening */)
-            anim.play(contentAnimator.first)
-            anim.addListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    contentAnimator.second.run()
-                }
-            })
-        }
-
         resetPivot()
 
         val workspaceAnimator = AnimatorSet()
@@ -211,9 +199,6 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
         workspaceAnimator.play(blurAlpha)
 
         dragLayer.scrim.hideSysUiScrim(true)
-
-        // Pause page indicator animations as they lead to layer trashing.
-        launcher.workspace.pageIndicator.pauseAnimations()
         dragLayer.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         workspaceAnimator.addListener(object : AnimatorListenerAdapter() {
@@ -241,15 +226,9 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
         val alphaFrom = if (isAppOpening) APP_OPEN_HOME_EXIT_ALPHA_FROM else APP_CLOSE_HOME_ENTER_SCALE_FROM
         val alphaTo = if (isAppOpening) APP_OPEN_HOME_EXIT_ALPHA_TO else APP_CLOSE_HOME_ENTER_SCALE_TO
 
-        val alpha = if (launcher.isInState(ALL_APPS)) {
-            val appsView = launcher.appsView
-            appsView.alpha = alphaFrom
-            ObjectAnimator.ofFloat(appsView, View.ALPHA, alphaFrom, alphaTo)
-        } else {
-            dragLayerAlpha.value = alphaFrom
-            ObjectAnimator.ofFloat(dragLayerAlpha, MultiValueAlpha.VALUE,
-                    alphaFrom, alphaTo)
-        }
+        dragLayerAlpha.value = alphaFrom
+        val alpha = ObjectAnimator.ofFloat(dragLayerAlpha, MultiValueAlpha.VALUE,
+                alphaFrom, alphaTo)
         alpha.duration = if (isAppOpening) APP_OPEN_HOME_EXIT_ALPHA_DURATION else APP_CLOSE_HOME_ENTER_ALPHA_DURATION
         alpha.interpolator = if (isAppOpening)
             APP_OPEN_HOME_EXIT_ALPHA_INTERPOLATOR else APP_CLOSE_HOME_ENTER_ALPHA_INTERPOLATOR
@@ -277,18 +256,9 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
         launcherAnimator.play(blurAlpha)
 
         dragLayer.scrim.hideSysUiScrim(true)
-        // Pause page indicator animations as they lead to layer trashing.
-        launcher.workspace.pageIndicator.pauseAnimations()
         dragLayer.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
-        val endListener = if (launcher.isInState(ALL_APPS)) {
-            Runnable {
-                launcher.appsView.alpha = alphaFrom
-                resetContentView()
-            }
-        } else {
-            Runnable { resetContentView() }
-        }
+        val endListener = Runnable { resetContentView() }
 
         return Pair(launcherAnimator, endListener)
     }
@@ -405,7 +375,7 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
 
     private fun allowWindowIconTransition(targets: Array<out RemoteAnimationTargetCompat>): Boolean {
         if (!useWindowToIcon) return false
-        if (!launcher.isInState(NORMAL) && !launcher.isInState(ALL_APPS)) return false
+        if (!launcher.isInState(NORMAL)) return false
         if (launcher.hasSomeInvisibleFlag(INVISIBLE_BY_APP_TRANSITIONS)) return false
         return launcherIsATargetWithMode(targets, MODE_OPENING) || launcher.isForceInvisible
     }
@@ -427,7 +397,6 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
     private fun findIconForComponent(component: ComponentKey, allowFolder: Boolean): View? {
         return when {
             launcher.isInState(NORMAL) -> findWorkspaceIconForComponent(component, allowFolder)
-            launcher.isInState(ALL_APPS) -> findAllAppsIconForComponent(component)
             else -> null
         }
     }
@@ -438,25 +407,13 @@ class LawnchairAppTransitionManagerImpl(context: Context) : LauncherAppTransitio
         }, launcher.workspace.currentContainer, launcher.hotseat.layout.shortcutsAndWidgets)
     }
 
-    private fun findAllAppsIconForComponent(component: ComponentKey): View? {
-        val appsView = launcher.allAppsController.appsView
-        val predictions = (appsView.floatingHeaderView as PredictionsFloatingHeader).predictionRowView
-        return findInViews(Workspace.ItemOperator { info, _ ->
-            matchesComponent(info, component, false)
-        }, appsView.activeRecyclerView, predictions)
-    }
-
     private fun matchesComponent(info: ItemInfo?, component: ComponentKey, allowFolder: Boolean): Boolean {
         if (info == null) {
             return false
         }
 
         if (info is FolderInfo) {
-            if (info.isCoverMode) {
-                return matchesComponent(info.coverInfo, component, false)
-            } else if (allowFolder) {
-                return info.contents.any { matchesComponent(it, component, allowFolder) }
-            }
+            return info.contents.any { matchesComponent(it, component, allowFolder) }
         }
 
         return info.targetComponent?.packageName == component.componentName.packageName && info.user == component.user

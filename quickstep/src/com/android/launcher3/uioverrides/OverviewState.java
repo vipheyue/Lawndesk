@@ -29,7 +29,6 @@ import com.android.launcher3.LauncherState;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.Workspace;
-import com.android.launcher3.allapps.DiscoveryBounce;
 import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
 import com.android.quickstep.RecentsModel;
 import com.android.quickstep.views.RecentsView;
@@ -85,7 +84,6 @@ public class OverviewState extends LauncherState {
     @Override
     public void onStateTransitionEnd(Launcher launcher) {
         launcher.getRotationHelper().setCurrentStateRequest(REQUEST_ROTATE);
-        DiscoveryBounce.showForOverviewIfNeeded(launcher);
     }
 
     public PageAlphaProvider getWorkspacePageAlphaProvider(Launcher launcher) {
@@ -100,11 +98,9 @@ public class OverviewState extends LauncherState {
     @Override
     public int getVisibleElements(Launcher launcher) {
         if (launcher.getDeviceProfile().isVerticalBarLayout()) {
-            return VERTICAL_SWIPE_INDICATOR;
+            return 0;
         } else {
-            return HOTSEAT_SEARCH_BOX | VERTICAL_SWIPE_INDICATOR |
-                    (launcher.getAppsView().getFloatingHeaderView().hasVisibleContent()
-                            ? ALL_APPS_HEADER_EXTRA : HOTSEAT_ICONS);
+            return HOTSEAT_ICONS;
         }
     }
 
@@ -120,20 +116,6 @@ public class OverviewState extends LauncherState {
     }
 
     @Override
-    public float getVerticalProgress(Launcher launcher) {
-        if ((getVisibleElements(launcher) & ALL_APPS_HEADER_EXTRA) == 0) {
-            // We have no all apps content, so we're still at the fully down progress.
-            return super.getVerticalProgress(launcher);
-        }
-        return getNormalVerticalProgress(launcher);
-    }
-
-    public static float getNormalVerticalProgress(Launcher launcher) {
-        return 1 - (getDefaultSwipeHeight(launcher)
-                / launcher.getAllAppsController().getShiftRange());
-    }
-
-    @Override
     public String getDescription(Launcher launcher) {
         return launcher.getString(R.string.accessibility_desc_recent_apps);
     }
@@ -143,6 +125,6 @@ public class OverviewState extends LauncherState {
     }
 
     public static float getDefaultSwipeHeight(DeviceProfile dp) {
-        return dp.allAppsCellHeightPx - dp.allAppsIconTextSizePx;
+        return 0;
     }
 }

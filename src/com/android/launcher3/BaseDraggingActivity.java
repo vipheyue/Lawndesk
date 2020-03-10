@@ -32,8 +32,6 @@ import android.view.ActionMode;
 import android.view.View;
 import android.widget.Toast;
 
-import ch.deletescape.lawnchair.sesame.Sesame;
-import ch.deletescape.lawnchair.sesame.SesameShortcutInfo;
 import ch.deletescape.lawnchair.theme.ThemeOverride;
 import ch.deletescape.lawnchair.theme.ThemeOverride.ThemeSet;
 import com.android.launcher3.LauncherSettings.Favorites;
@@ -191,7 +189,6 @@ public abstract class BaseDraggingActivity extends BaseActivity
                 LauncherAppsCompat.getInstance(this).startActivityForProfile(
                         intent.getComponent(), user, intent.getSourceBounds(), optsBundle);
             }
-            getUserEventDispatcher().logAppLaunch(v, intent, user);
             return true;
         } catch (ActivityNotFoundException|SecurityException e) {
             Toast.makeText(this, R.string.activity_not_found, Toast.LENGTH_SHORT).show();
@@ -221,7 +218,6 @@ public abstract class BaseDraggingActivity extends BaseActivity
                 }
             } finally {
                 StrictMode.setVmPolicy(oldPolicy);
-                getUserEventDispatcher().logShortcutLaunch(intent, info);
             }
         } catch (SecurityException e) {
             if (!onErrorStartingShortcut(intent, info)) {

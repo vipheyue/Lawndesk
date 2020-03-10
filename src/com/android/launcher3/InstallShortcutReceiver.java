@@ -669,4 +669,17 @@ public class InstallShortcutReceiver extends BroadcastReceiver {
         return info;
     }
 
+    public static void installNewAppShortcuts(Context context, ArrayList<AppInfo> apps) {
+        ArrayList<Pair<ItemInfo, Object>> installQueue = new ArrayList<>();
+        for(AppInfo app : apps) {
+            android.content.pm.LauncherActivityInfo info = LauncherAppsCompat.getInstance(context)
+                    .resolveActivity(app.intent, app.user);
+            if (info == null) {
+                continue;
+            }
+            PendingInstallShortcutInfo item = new PendingInstallShortcutInfo(info, context);
+            installQueue.add(item.getItemInfo());
+        }
+        LauncherAppState.getInstance(context).getModel().addAndBindAddedWorkspaceItems(installQueue);
+    }
 }

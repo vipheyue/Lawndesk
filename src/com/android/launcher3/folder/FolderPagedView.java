@@ -111,57 +111,12 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
     }
 
     /**
-     * Calculates the grid size such that {@param count} items can fit in the grid.
-     * The grid size is calculated such that countY <= countX and countX = ceil(sqrt(count)) while
-     * maintaining the restrictions of {@link #mMaxCountX} &amp; {@link #mMaxCountY}.
-     */
-    public static void calculateGridSize(int count, int countX, int countY, int maxCountX,
-            int maxCountY, int maxItemsPerPage, int[] out) {
-        boolean done;
-        int gridCountX = countX;
-        int gridCountY = countY;
-
-        if (count >= maxItemsPerPage) {
-            gridCountX = maxCountX;
-            gridCountY = maxCountY;
-            done = true;
-        } else {
-            done = false;
-        }
-
-        while (!done) {
-            int oldCountX = gridCountX;
-            int oldCountY = gridCountY;
-            if (gridCountX * gridCountY < count) {
-                // Current grid is too small, expand it
-                if ((gridCountX <= gridCountY || gridCountY == maxCountY)
-                        && gridCountX < maxCountX) {
-                    gridCountX++;
-                } else if (gridCountY < maxCountY) {
-                    gridCountY++;
-                }
-                if (gridCountY == 0) gridCountY++;
-            } else if ((gridCountY - 1) * gridCountX >= count && gridCountY >= gridCountX) {
-                gridCountY = Math.max(0, gridCountY - 1);
-            } else if ((gridCountX - 1) * gridCountY >= count) {
-                gridCountX = Math.max(0, gridCountX - 1);
-            }
-            done = gridCountX == oldCountX && gridCountY == oldCountY;
-        }
-
-        out[0] = gridCountX;
-        out[1] = gridCountY;
-    }
-
-    /**
      * Sets up the grid size such that {@param count} items can fit in the grid.
      */
     public void setupContentDimensions(int count) {
         mAllocatedContentSize = count;
-        calculateGridSize(count, mGridCountX, mGridCountY, mMaxCountX, mMaxCountY, mMaxItemsPerPage,
-                sTmpArray);
-        mGridCountX = sTmpArray[0];
-        mGridCountY = sTmpArray[1];
+        mGridCountX = mMaxCountX;
+        mGridCountY = mMaxCountY;
 
         // Update grid size
         for (int i = getPageCount() - 1; i >= 0; i--) {
@@ -231,8 +186,7 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
 
     @SuppressLint("InflateParams")
     public View createNewView(ShortcutInfo item) {
-        int layout = mFolder.isInAppDrawer() ? R.layout.all_apps_folder_application
-                : R.layout.folder_application;
+        int layout = R.layout.folder_application;
         final BubbleTextView textView = (BubbleTextView) mInflater.inflate(layout, null, false);
         textView.applyFromShortcutInfo(item);
         textView.setHapticFeedbackEnabled(false);
@@ -257,11 +211,8 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
     private CellLayout createAndAddNewPage() {
         DeviceProfile grid = Launcher.getLauncher(getContext()).getDeviceProfile();
         CellLayout page = (CellLayout) mInflater.inflate(R.layout.folder_page, this, false);
-        if (mFolder.isInAppDrawer()) {
-            page.setCellDimensions(grid.allAppsFolderCellWidthPx, grid.allAppsFolderCellHeightPx);
-        } else {
-            page.setCellDimensions(grid.folderCellWidthPx, grid.folderCellHeightPx);
-        }
+
+        page.setCellDimensions(grid.folderCellWidthPx, grid.folderCellHeightPx);
         page.getShortcutsAndWidgets().setMotionEventSplittingEnabled(false);
         page.setInvertIfRtl(true);
         page.setGridSize(mGridCountX, mGridCountY);
@@ -382,9 +333,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
 
         // Update footer
         mPageIndicator.setVisibility(getPageCount() > 1 ? View.VISIBLE : View.GONE);
-        // Set the gravity as LEFT or RIGHT instead of START, as START depends on the actual text.
-        mFolder.mFolderName.setGravity(getPageCount() > 1 ?
-                (mIsRtl ? Gravity.RIGHT : Gravity.LEFT) : Gravity.CENTER_HORIZONTAL);
+        // 文件夹名称始终居中
+//        mFolder.mFolderName.setGravity(getPageCount() > 1 ?
+//                (mIsRtl ? Gravity.RIGHT : Gravity.LEFT) : Gravity.CENTER_HORIZONTAL);
     }
 
     public int getDesiredWidth() {
@@ -687,4 +638,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
     public int itemsPerPage() {
         return mMaxItemsPerPage;
     }
+
+    public int getPageIndexForRank(int rank) {
+        return rank / mMaxItemsPerPage;
+    }
+
 }

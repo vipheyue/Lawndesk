@@ -58,6 +58,10 @@ public class AllAppsStore {
         return mComponentToAppMap.values();
     }
 
+    public ArrayList<AppInfo> getAppsArrayList() {
+        return new ArrayList<>(getApps());
+    }
+
     /**
      * Sets the current set of apps.
      */

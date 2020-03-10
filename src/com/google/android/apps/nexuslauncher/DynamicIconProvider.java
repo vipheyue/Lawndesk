@@ -37,6 +37,7 @@ public class DynamicIconProvider extends IconProvider {
 
     public DynamicIconProvider(Context context) {
         mContext = context;
+        mPackageManager = mContext.getPackageManager();
         mDateChangeReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -65,7 +66,6 @@ public class DynamicIconProvider extends IconProvider {
             intentFilter.addAction(Intent.ACTION_TIME_TICK);
         }
         mContext.registerReceiver(mDateChangeReceiver, intentFilter, null, new Handler(LauncherModel.getWorkerLooper()));
-        mPackageManager = mContext.getPackageManager();
     }
 
     private int getDayOfMonth() {

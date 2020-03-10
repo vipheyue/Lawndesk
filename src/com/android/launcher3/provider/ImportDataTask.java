@@ -134,14 +134,14 @@ public class ImportDataTask {
 
         boolean createEmptyRowOnFirstScreen = false;
         if (FeatureFlags.QSB_ON_FIRST_SCREEN) {
-            try (Cursor c = mContext.getContentResolver().query(mOtherFavoritesUri, null,
-                    // get items on the first row of the first screen
-                    "profileId = ? AND container = -100 AND screen = ? AND cellY = 0",
-                    new String[]{profileId, Long.toString(firsetScreenId)},
-                    null)) {
-                // First row of first screen is not empty
-                createEmptyRowOnFirstScreen = c.moveToNext();
-            }
+//            try (Cursor c = mContext.getContentResolver().query(mOtherFavoritesUri, null,
+//                    // get items on the first row of the first screen
+//                    "profileId = ? AND container = -100 AND screen = ? AND cellY = 0",
+//                    new String[]{profileId, Long.toString(firsetScreenId)},
+//                    null)) {
+//                // First row of first screen is not empty
+//                createEmptyRowOnFirstScreen = c.moveToNext();
+//            }
         } else {
             createEmptyRowOnFirstScreen = false;
         }
@@ -206,10 +206,10 @@ public class ImportDataTask {
                         }
                         // Reset the screen to 0-index value
                         screen = newScreenId;
-                        if (createEmptyRowOnFirstScreen && screen == Workspace.FIRST_SCREEN_ID) {
-                            // Shift items by 1.
-                            cellY++;
-                        }
+//                        if (createEmptyRowOnFirstScreen && screen == Workspace.FIRST_SCREEN_ID) {
+//                            // Shift items by 1.
+//                            cellY++;
+//                        }
 
                         mMaxGridSizeX = Math.max(mMaxGridSizeX, cellX + spanX);
                         mMaxGridSizeY = Math.max(mMaxGridSizeY, cellY + spanY);
@@ -308,9 +308,6 @@ public class ImportDataTask {
 
         LongArrayMap<Object> hotseatItems = GridSizeMigrationTask.removeBrokenHotseatItems(mContext);
         int myHotseatCount = LauncherAppState.getIDP(mContext).numHotseatIcons;
-        if (!FeatureFlags.NO_ALL_APPS_ICON) {
-            myHotseatCount--;
-        }
         if (hotseatItems.size() < myHotseatCount) {
             // Insufficient hotseat items. Add a few more.
             HotseatParserCallback parserCallback = new HotseatParserCallback(

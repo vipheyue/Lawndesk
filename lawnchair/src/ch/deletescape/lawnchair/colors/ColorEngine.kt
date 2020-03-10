@@ -176,23 +176,17 @@ class ColorEngine private constructor(val context: Context) : LawnchairPreferenc
             fun getDefaultResolver(key: String, engine: ColorEngine): ColorResolver {
                 val context = engine.context
                 return when (key) {
-                    HOTSEAT_QSB_BG -> {
-                        DockQsbAutoResolver(createConfig(key, engine))
+                    ALLAPPS_ICON_LABEL -> {
+                        DrawerLabelAutoResolver(createConfig(key, engine))
                     }
                     ALLAPPS_QSB_BG -> {
                         DrawerQsbAutoResolver(createConfig(key, engine))
-                    }
-                    ALLAPPS_ICON_LABEL -> {
-                        DrawerLabelAutoResolver(createConfig(key, engine))
                     }
                     WORKSPACE_ICON_LABEL -> {
                         WorkspaceLabelAutoResolver(createConfig(key, engine))
                     }
                     HOTSEAT_ICON_LABEL -> {
                         WorkspaceLabelAutoResolver(createConfig(key, engine))
-                    }
-                    DOCK_BACKGROUND, ALLAPPS_BACKGROUND -> {
-                        ShelfBackgroundAutoResolver(createConfig(key, engine))
                     }
                     SUPERG_BACKGROUND -> {
                         SuperGAutoResolver(createConfig(key, engine))

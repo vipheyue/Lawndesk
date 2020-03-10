@@ -265,7 +265,7 @@ class LawnchairBackup(val context: Context, val uri: Uri) {
         val timestampFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.US)
 
         fun getFolder(): File {
-            val folder = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Lawnchair/backup")
+            val folder = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Lawndesk/backup")
             Log.d(TAG, "path: $folder")
             if (!folder.exists()) {
                 folder.mkdirs()

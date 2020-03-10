@@ -72,7 +72,7 @@ class OptionsPanel(context: Context, attrs: AttributeSet) : LinearLayout(context
         layoutParams = (layoutParams as FrameLayout.LayoutParams).also { lp ->
             lp.width = deviceProfile.availableWidthPx
             lp.height = (deviceProfile.availableHeightPx * (1 - deviceProfile.workspaceOptionsShrinkFactor)).toInt()
-            lp.bottomMargin = insets.bottom
+            lp.bottomMargin = insets.bottom + deviceProfile.pageIndicatorSizePx
         }
     }
 }

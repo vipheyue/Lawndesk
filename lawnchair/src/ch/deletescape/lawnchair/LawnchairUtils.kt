@@ -32,6 +32,7 @@ import android.graphics.drawable.*
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.UserHandle
 import android.provider.OpenableColumns
 import android.service.notification.StatusBarNotification
 import android.support.animation.FloatPropertyCompat
@@ -69,7 +70,6 @@ import com.android.launcher3.util.PackageUserKey
 import com.android.launcher3.util.Themes
 import com.android.launcher3.views.OptionsPopupView
 import com.android.systemui.shared.recents.model.TaskStack
-import com.google.android.apps.nexuslauncher.CustomAppPredictor
 import com.google.android.apps.nexuslauncher.CustomIconUtils
 import org.json.JSONArray
 import org.json.JSONObject
@@ -405,11 +405,6 @@ fun reloadIcons(context: Context, packages: Collection<PackageUserKey>) {
         packages.forEach {
             CustomIconUtils.reloadIcon(shortcutManager, model, it.mUser, it.mPackageName)
         }
-        if (launcher != null) {
-            runOnMainThread {
-                (launcher.userEventDispatcher as CustomAppPredictor).uiManager.onPredictionsUpdated()
-            }
-        }
     }
 }
 
@@ -502,6 +497,13 @@ fun android.app.AlertDialog.applyAccent() {
 
 fun BgDataModel.workspaceContains(packageName: String): Boolean {
     return this.workspaceItems.any { it.targetComponent?.packageName == packageName }
+}
+
+fun BgDataModel.workspaceContains(packageName: String, userHandle : UserHandle): Boolean {
+    return this.workspaceItems.any {
+        it.targetComponent?.packageName == packageName &&
+            it.user == userHandle
+    }
 }
 
 fun findInViews(op: Workspace.ItemOperator, vararg views: ViewGroup?): View? {

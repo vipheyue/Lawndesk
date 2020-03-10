@@ -182,6 +182,7 @@ public class LoaderResults {
                 Callbacks callbacks = mCallbacks.get();
                 if (callbacks != null) {
                     callbacks.finishBindingItems(mPageToBindFirst);
+                    callbacks.verifyApplications(mBgAllAppsList.data);
                 }
             }
         };

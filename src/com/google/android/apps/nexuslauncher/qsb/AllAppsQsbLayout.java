@@ -6,7 +6,6 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
@@ -22,11 +21,10 @@ import ch.deletescape.lawnchair.globalsearch.SearchProviderController;
 import ch.deletescape.lawnchair.globalsearch.providers.AppSearchSearchProvider;
 import ch.deletescape.lawnchair.globalsearch.providers.GoogleSearchProvider;
 import ch.deletescape.lawnchair.globalsearch.providers.web.WebSearchProvider;
-import com.android.launcher3.BaseRecyclerView;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.allapps.AllAppsContainerView;
 import com.android.launcher3.allapps.SearchUiManager;
 import com.google.android.apps.nexuslauncher.search.SearchThread;
 import org.jetbrains.annotations.NotNull;
@@ -42,7 +40,7 @@ public class AllAppsQsbLayout extends AbstractQsbLayout implements SearchUiManag
     private FallbackAppsSearchView mFallback;
     public float Dy;
     private TextView mHint;
-    private AllAppsContainerView mAppsView;
+    private SearchContainerView mSearchView;
     boolean mDoNotRemoveFallback;
     private LawnchairPreferences prefs;
     private int mForegroundColor;
@@ -80,24 +78,24 @@ public class AllAppsQsbLayout extends AbstractQsbLayout implements SearchUiManag
         MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
         mlp.topMargin = getTopMargin(rect);
         requestLayout();
-        if (mActivity.getDeviceProfile().isVerticalBarLayout()) {
-            mActivity.getAllAppsController().setScrollRangeDelta(0);
-        } else {
-            float delta = HotseatQsbWidget.getBottomMargin(mActivity, false) + Dy;
-            LawnchairPreferences prefs = LawnchairPreferences.Companion.getInstance(getContext());
-            if (!prefs.getDockHide()) {
-                delta += mlp.height + mlp.topMargin;
-                if (!prefs.getDockSearchBar()) {
-                    delta -= mlp.height;
-                    delta -= mlp.topMargin;
-                    delta -= mlp.bottomMargin;
-                    delta += Dy;
-                }
-            } else {
-                delta -= mActivity.getResources().getDimensionPixelSize(R.dimen.vertical_drag_handle_size);
-            }
-            mActivity.getAllAppsController().setScrollRangeDelta(Math.round(delta));
-        }
+//        if (mActivity.getDeviceProfile().isVerticalBarLayout()) {
+////            mActivity.getAllAppsController().setScrollRangeDelta(0);
+//        } else {
+////            float delta = HotseatQsbWidget.getBottomMargin(mActivity, false) + Dy;
+//            LawnchairPreferences prefs = LawnchairPreferences.Companion.getInstance(getContext());
+//            if (!prefs.getDockHide()) {
+//                delta += mlp.height + mlp.topMargin;
+////                if (!prefs.getDockSearchBar()) {
+//                    delta -= mlp.height;
+//                    delta -= mlp.topMargin;
+//                    delta -= mlp.bottomMargin;
+//                    delta += Dy;
+////                }
+//            } else {
+//                delta -= mActivity.getResources().getDimensionPixelSize(R.dimen.vertical_drag_handle_size);
+//            }
+//            mActivity.getAllAppsController().setScrollRangeDelta(Math.round(delta));
+//        }
     }
 
     public int getTopMargin(Rect rect) {
@@ -162,24 +160,24 @@ public class AllAppsQsbLayout extends AbstractQsbLayout implements SearchUiManag
     }
 
     protected final int aA(int i) {
-        if (this.mActivity.getDeviceProfile().isVerticalBarLayout()) {
-            return (i - this.mAppsView.getActiveRecyclerView().getPaddingLeft()) - this.mAppsView
-                    .getActiveRecyclerView().getPaddingRight();
-        }
+//        if (this.mActivity.getDeviceProfile().isVerticalBarLayout()) {
+//            return (i - this.mSearchView.getActiveRecyclerView().getPaddingLeft()) - this.mSearchView
+//                    .getActiveRecyclerView().getPaddingRight();
+//        }
         View view = this.mActivity.getHotseat().getLayout();
         return (i - view.getPaddingLeft()) - view.getPaddingRight();
     }
 
-    public final void initialize(AllAppsContainerView allAppsContainerView) {
-        this.mAppsView = allAppsContainerView;
+    public final void initialize(SearchContainerView searchContainerView) {
+        this.mSearchView = searchContainerView;
         int i = 0;
-        mAppsView.addElevationController(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                setShadowAlpha(((BaseRecyclerView) recyclerView).getCurrentScrollY());
-            }
-        });
-        mAppsView.setRecyclerViewVerticalFadingEdgeEnabled(!mLowPerformanceMode);
+//        mSearchView.addElevationController(new RecyclerView.OnScrollListener() {
+//            @Override
+//            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+//                setShadowAlpha(((BaseRecyclerView) recyclerView).getCurrentScrollY());
+//            }
+//        });
+//        mSearchView.setRecyclerViewVerticalFadingEdgeEnabled(!mLowPerformanceMode);
     }
 
     public final void dM() {
@@ -270,10 +268,10 @@ public class AllAppsQsbLayout extends AbstractQsbLayout implements SearchUiManag
             setOnClickListener(null);
             mFallback = (FallbackAppsSearchView) this.mActivity.getLayoutInflater()
                     .inflate(R.layout.all_apps_google_search_fallback, this, false);
-            AllAppsContainerView allAppsContainerView = this.mAppsView;
+            SearchContainerView searchContainerView = this.mSearchView;
             mFallback.DJ = this;
-            mFallback.mApps = allAppsContainerView.getApps();
-            mFallback.mAppsView = allAppsContainerView;
+            mFallback.mApps = searchContainerView.getApps();
+            mFallback.mSearchContainerView = searchContainerView;
             mFallback.DI.initialize(new SearchThread(mFallback.getContext()), mFallback,
                     Launcher.getLauncher(mFallback.getContext()), mFallback);
             addView(this.mFallback);

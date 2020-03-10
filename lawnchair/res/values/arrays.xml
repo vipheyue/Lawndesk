@@ -30,7 +30,7 @@
 
     <string-array name="dockStyleValues">
         <item>1</item>
-        <item>5</item>
+        <item>2</item>
         <item>0</item>
     </string-array>
 

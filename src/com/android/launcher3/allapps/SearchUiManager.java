@@ -16,6 +16,9 @@
 package com.android.launcher3.allapps;
 
 import android.view.KeyEvent;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
+import com.android.launcher3.AppInfo;
+import java.util.List;
 
 /**
  * Interface for controlling the Apps search UI.
@@ -25,7 +28,7 @@ public interface SearchUiManager {
     /**
      * Initializes the search manager.
      */
-    void initialize(AllAppsContainerView containerView);
+    void initialize(SearchContainerView searchContainerView);
 
     /**
      * Notifies the search manager to close any active search session.

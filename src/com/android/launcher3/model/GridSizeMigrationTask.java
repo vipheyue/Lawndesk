@@ -139,7 +139,7 @@ public class GridSizeMigrationTask {
     protected boolean migrateHotseat() throws Exception {
         ArrayList<DbEntry> items = loadHotseatEntries();
 
-        int requiredCount = FeatureFlags.NO_ALL_APPS_ICON ? mDestHotseatSize : mDestHotseatSize - 1;
+        int requiredCount = mDestHotseatSize;
 
         while (items.size() > requiredCount) {
             // Pick the center item by default.
@@ -171,9 +171,6 @@ public class GridSizeMigrationTask {
             }
 
             newScreenId++;
-            if (!FeatureFlags.NO_ALL_APPS_ICON && mIdp.isAllAppsButtonRank(newScreenId)) {
-                newScreenId++;
-            }
         }
 
         return applyOperations();
@@ -257,8 +254,7 @@ public class GridSizeMigrationTask {
      */
     protected void migrateScreen(long screenId) {
         // If we are migrating the first screen, do not touch the first row.
-        int startY = (FeatureFlags.QSB_ON_FIRST_SCREEN && screenId == Workspace.FIRST_SCREEN_ID)
-                ? 1 : 0;
+        int startY = 0;
 
         ArrayList<DbEntry> items = loadWorkspaceEntries(screenId);
 

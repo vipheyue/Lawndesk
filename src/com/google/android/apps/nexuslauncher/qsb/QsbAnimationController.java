@@ -67,7 +67,7 @@ public class QsbAnimationController implements WindowStateListener, StateListene
             mAnimatorSet = null;
         }
         View view = mLauncher.getDragLayer();
-        if (mLauncher.isInState(LauncherState.ALL_APPS)) {
+        if (mLauncher.isInState(LauncherState.SEARCH)) {
             view.setAlpha(1.0f);
             view.setTranslationY(0.0f);
             return;
@@ -112,7 +112,7 @@ public class QsbAnimationController implements WindowStateListener, StateListene
     }
 
     private void a(LauncherState launcherState) {
-        if (mGoogleHasFocus && launcherState != LauncherState.ALL_APPS && !mLauncher.hasWindowFocus()) {
+        if (mGoogleHasFocus && launcherState != LauncherState.SEARCH && !mLauncher.hasWindowFocus()) {
             playAnimation(true, false);
         }
     }

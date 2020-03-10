@@ -177,8 +177,6 @@ public class TaskSystemShortcut<T extends SystemShortcut> extends SystemShortcut
                         Log.w(TAG, "Failed to notify SysUI of split screen: ", e);
                         return;
                     }
-                    activity.getUserEventDispatcher().logActionOnControl(TAP,
-                            LauncherLogProto.ControlType.SPLIT_SCREEN_TARGET);
                     // Add a device profile change listener to kick off animating the side tasks
                     // once we enter multiwindow mode and relayout
                     activity.addOnDeviceProfileChangeListener(onDeviceProfileChangeListener);

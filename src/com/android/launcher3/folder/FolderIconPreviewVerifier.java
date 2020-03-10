@@ -19,7 +19,7 @@ package com.android.launcher3.folder;
 import com.android.launcher3.FolderInfo;
 import com.android.launcher3.InvariantDeviceProfile;
 
-import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
+import static com.android.launcher3.folder.NineFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 
 /**
  * Verifies whether an item in a Folder is displayed in the FolderIcon preview.
@@ -42,11 +42,10 @@ public class FolderIconPreviewVerifier {
 
     public void setFolderInfo(FolderInfo info) {
         int numItemsInFolder = info.contents.size();
-        FolderPagedView.calculateGridSize(numItemsInFolder, 0, 0, mMaxGridCountX,
-                mMaxGridCountY, mMaxItemsPerPage, mGridSize);
-        mGridCountX = mGridSize[0];
+        mGridCountX = mMaxGridCountX;
 
-        mDisplayingUpperLeftQuadrant = numItemsInFolder > MAX_NUM_ITEMS_IN_PREVIEW;
+        mDisplayingUpperLeftQuadrant = (numItemsInFolder / mGridCountX) >= 3 ||
+                ((numItemsInFolder / mGridCountX) >= 2 && (numItemsInFolder % mGridCountX) >= 3);
     }
 
     /**
@@ -67,7 +66,7 @@ public class FolderIconPreviewVerifier {
         if (page > 0 || mDisplayingUpperLeftQuadrant) {
             int col = rank % mGridCountX;
             int row = rank / mGridCountX;
-            return col < 2 && row < 2;
+            return col < 3 && row < 3;
         }
         return rank < MAX_NUM_ITEMS_IN_PREVIEW;
     }

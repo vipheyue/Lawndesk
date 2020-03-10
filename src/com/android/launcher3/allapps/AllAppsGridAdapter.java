@@ -41,12 +41,10 @@ import ch.deletescape.lawnchair.globalsearch.SearchProviderController;
 import ch.deletescape.lawnchair.globalsearch.providers.web.WebSearchProvider;
 import com.android.launcher3.AppInfo;
 import com.android.launcher3.BubbleTextView;
-import com.android.launcher3.FolderInfo;
 import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.AlphabeticalAppsList.AdapterItem;
 import com.android.launcher3.compat.UserManagerCompat;
-import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.touch.ItemClickHandler;
 import com.android.launcher3.touch.ItemLongClickListener;
 import com.android.launcher3.util.PackageManagerHelper;
@@ -74,14 +72,13 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
     public static final int VIEW_TYPE_ALL_APPS_DIVIDER = 1 << 4;
     public static final int VIEW_TYPE_WORK_TAB_FOOTER = 1 << 5;
 
-    // Drawer folders
-    public static final int VIEW_TYPE_FOLDER = 1 << 6;
+    public static final int VIEW_TYPE_SEARCH = 1 << 5;
     // Web search suggestions
     public static final int VIEW_TYPE_SEARCH_SUGGESTION = 1 << 7;
 
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
-    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON | VIEW_TYPE_FOLDER;
+    public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON;
 
 
     public interface BindViewCallback {
@@ -197,7 +194,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
     private final int mAppsPerRow;
 
     private BindViewCallback mBindViewCallback;
-    private OnFocusChangeListener mIconFocusListener;
 
     // The text to show when there are no search results and no market search handler.
     private String mEmptySearchMessage;
@@ -230,10 +226,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
         return (viewType & viewTypeMask) != 0;
 }
 
-    public void setIconFocusListener(OnFocusChangeListener focusListener) {
-        mIconFocusListener = focusListener;
-    }
-
     /**
      * Sets the last search query that was made, used to show when there are no results and to also
      * seed the intent for searching the market.
@@ -265,12 +257,11 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
                 BubbleTextView icon = (BubbleTextView) mLayoutInflater.inflate(
                         R.layout.all_apps_icon, parent, false);
                 icon.setOnClickListener(ItemClickHandler.INSTANCE);
-                icon.setOnLongClickListener(ItemLongClickListener.INSTANCE_ALL_APPS);
-                icon.setLongPressTimeout(ViewConfiguration.getLongPressTimeout());
-                icon.setOnFocusChangeListener(mIconFocusListener);
+                icon.setOnLongClickListener(ItemLongClickListener.INSTANCE_SEARCH);
+//                icon.setLongPressTimeout(ViewConfiguration.getLongPressTimeout());
 
                 // Ensure the all apps icon height matches the workspace icons in portrait mode.
-                icon.getLayoutParams().height = mLauncher.getDeviceProfile().allAppsCellHeightPx;
+                icon.getLayoutParams().height = mLauncher.getDeviceProfile().cellHeightPx;
                 return new ViewHolder(icon);
             case VIEW_TYPE_EMPTY_SEARCH:
                 return new ViewHolder(mLayoutInflater.inflate(R.layout.all_apps_empty_search,
@@ -291,14 +282,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
             case VIEW_TYPE_WORK_TAB_FOOTER:
                 View footer = mLayoutInflater.inflate(R.layout.work_tab_footer, parent, false);
                 return new ViewHolder(footer);
-            case VIEW_TYPE_FOLDER:
-                FrameLayout layout = new FrameLayout(mLauncher);
-
-                ViewGroup.MarginLayoutParams lp = new ViewGroup.MarginLayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        mLauncher.getDeviceProfile().allAppsCellHeightPx);
-                layout.setLayoutParams(lp);
-                return new ViewHolder(layout);
             case VIEW_TYPE_SEARCH_SUGGESTION:
                 return new ViewHolder(mLayoutInflater.inflate(R.layout.all_apps_search_suggestion, parent, false));
             default:
@@ -325,9 +308,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
                 TextView searchView = (TextView) holder.itemView;
                 if (mMarketSearchIntent != null) {
                     searchView.setVisibility(View.VISIBLE);
-                    int accent = ColorEngine.getInstance(searchView.getContext())
-                            .getAccent();
-                    searchView.setTextColor(accent);
                 } else {
                     searchView.setVisibility(View.GONE);
                 }
@@ -344,24 +324,11 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
                 managedByLabel.setText(anyProfileQuietModeEnabled
                         ? R.string.work_mode_off_label : R.string.work_mode_on_label);
                 break;
-            case VIEW_TYPE_FOLDER:
-                ViewGroup container = (ViewGroup) holder.itemView;
-                FolderIcon folderIcon = mApps.getAdapterItems().get(position)
-                        .folderItem.getFolderIcon(mLauncher, container);
-
-                container.removeAllViews();
-                container.addView(folderIcon);
-
-                folderIcon.verifyHighRes();
-                break;
             case VIEW_TYPE_SEARCH_SUGGESTION:
-                int color = getDrawerTextColor();
                 ViewGroup group = (ViewGroup) holder.itemView;
                 TextView textView = group.findViewById(R.id.suggestion);
                 String suggestion = mApps.getAdapterItems().get(position).suggestion;
                 textView.setText(suggestion);
-                textView.setTextColor(color);
-                ((ImageView) group.findViewById(android.R.id.icon)).getDrawable().setTint(color);
                 group.setOnClickListener(v -> {
                     SearchProvider provider = getSearchProvider();
                     if (provider instanceof WebSearchProvider) {

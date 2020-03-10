@@ -24,26 +24,32 @@ import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Outline;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Property;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewOutlineProvider;
 import android.view.animation.Interpolator;
 import android.view.animation.OvershootInterpolator;
 
+import android.widget.FrameLayout;
+import com.android.launcher3.DeviceProfile;
+import com.android.launcher3.Insettable;
+import com.android.launcher3.Launcher;
 import com.android.launcher3.R;
 import com.android.launcher3.Utilities;
-import com.android.launcher3.util.Themes;
 
 /**
  * {@link PageIndicator} which shows dots per page. The active page is shown with the current
  * accent color.
  */
-public class PageIndicatorDots extends View implements PageIndicator {
+public class PageIndicatorDots extends View implements Insettable, PageIndicator {
 
     private static final float SHIFT_PER_ANIMATION = 0.5f;
     private static final float SHIFT_THRESHOLD = 0.1f;
@@ -57,6 +63,8 @@ public class PageIndicatorDots extends View implements PageIndicator {
     private static final float ENTER_ANIMATION_OVERSHOOT_TENSION = 4.9f;
 
     private static final RectF sTempRect = new RectF();
+
+    private final Launcher mLauncher;
 
     private static final Property<PageIndicatorDots, Float> CURRENT_POSITION
             = new Property<PageIndicatorDots, Float>(float.class, "current_position") {
@@ -75,8 +83,8 @@ public class PageIndicatorDots extends View implements PageIndicator {
 
     private final Paint mCirclePaint;
     private final float mDotRadius;
-    private final int mActiveColor;
-    private final int mInActiveColor;
+    private int mActiveColor;
+    private int mInActiveColor;
     private final boolean mIsRtl;
 
     private int mNumPages;
@@ -113,8 +121,10 @@ public class PageIndicatorDots extends View implements PageIndicator {
         mDotRadius = getResources().getDimension(R.dimen.page_indicator_dot_size) / 2;
         setOutlineProvider(new MyOutlineProver());
 
-        mActiveColor = Themes.getColorAccent(context);
-        mInActiveColor = Themes.getAttrColor(context, android.R.attr.colorControlHighlight);
+        mLauncher = Launcher.getLauncher(context);
+
+        mActiveColor = Color.WHITE;
+        mInActiveColor = Color.parseColor("#22FFFFFF");
 
         mIsRtl = Utilities.isRtl(getResources());
     }
@@ -122,6 +132,9 @@ public class PageIndicatorDots extends View implements PageIndicator {
     @Override
     public void setScroll(int currentScroll, int totalScroll) {
         if (mNumPages > 1) {
+            if (totalScroll <= 0) {
+                return;
+            }
             if (mIsRtl) {
                 currentScroll = totalScroll - currentScroll;
             }
@@ -267,6 +280,16 @@ public class PageIndicatorDots extends View implements PageIndicator {
             mCirclePaint.setColor(mActiveColor);
             canvas.drawRoundRect(getActiveRect(), mDotRadius, mDotRadius, mCirclePaint);
         }
+    }
+
+    @Override
+    public void setInsets(Rect insets) {
+        DeviceProfile grid = mLauncher.getDeviceProfile();
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) getLayoutParams();
+        lp.gravity = Gravity.CENTER_HORIZONTAL | Gravity.BOTTOM;
+        lp.height = grid.pageIndicatorSizePx;
+        lp.bottomMargin = grid.hotseatBarSizePx + insets.bottom;
+        setLayoutParams(lp);
     }
 
     private RectF getActiveRect() {

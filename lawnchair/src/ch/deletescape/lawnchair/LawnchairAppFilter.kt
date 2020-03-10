@@ -20,9 +20,10 @@ package ch.deletescape.lawnchair
 import android.content.ComponentName
 import android.content.Context
 import android.os.UserHandle
-import com.google.android.apps.nexuslauncher.NexusAppFilter
+import com.android.launcher3.AppFilter
 
-open class LawnchairAppFilter(context: Context) : NexusAppFilter(context) {
+open class LawnchairAppFilter(context: Context) : AppFilter() {
+    // 用来排除应用本身
 
     private val hideList = HashSet<ComponentName>()
 

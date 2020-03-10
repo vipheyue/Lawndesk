@@ -85,6 +85,7 @@ public class BgDataModel {
      * Ordered list of workspace screens ids.
      */
     public final ArrayList<Long> workspaceScreens = new ArrayList<>();
+    public final ArrayList<Long> folderIDs = new ArrayList<>();
 
     /**
      * Map of ShortcutKey to the number of times it is pinned.

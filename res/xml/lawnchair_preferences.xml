@@ -48,15 +48,6 @@
         android:layout="@layout/home_preference" />
 
     <ch.deletescape.lawnchair.settings.ui.SubPreference
-        android:icon="@drawable/ic_app_drawer"
-        android:summary="@string/app_drawer_pref_summary"
-        android:title="@string/app_drawer_pref_title"
-        android:key="drawer"
-        app:content="@xml/lawnchair_app_drawer_preferences"
-        android:layout="@layout/home_preference" />
-
-
-    <ch.deletescape.lawnchair.settings.ui.SubPreference
         android:icon="@drawable/ic_pref_search"
         android:summary="@string/search_pref_summary"
         android:title="@string/search"
@@ -65,19 +56,19 @@
         android:layout="@layout/home_preference" />
 
     <ch.deletescape.lawnchair.settings.ui.SubPreference
-        android:icon="@drawable/ic_integrations"
-        android:summary="@string/pref_integrations_summary"
-        android:title="@string/pref_integrations"
-        android:key="integrations"
-        app:content="@xml/lawnchair_integration_preferences"
-        android:layout="@layout/home_preference" />
-
-    <ch.deletescape.lawnchair.settings.ui.SubPreference
         android:icon="@drawable/ic_gestures"
         android:summary="@string/gestures_pref_summary"
         android:title="@string/gestures_pref_title"
         android:key="gestures"
         app:content="@xml/lawnchair_gesture_preferences"
+        android:layout="@layout/home_preference" />
+
+    <ch.deletescape.lawnchair.settings.ui.SubPreference
+        android:icon="@drawable/ic_integrations"
+        android:summary="@string/pref_integrations_summary_v2"
+        android:title="@string/pref_integrations"
+        android:key="integrations"
+        app:content="@xml/lawnchair_integration_preferences"
         android:layout="@layout/home_preference" />
 
     <ch.deletescape.lawnchair.settings.ui.SubPreference
@@ -110,11 +101,12 @@
         app:controllerClass=".DeveloperOptionsController"
         android:layout="@layout/home_preference" />
 
-    <ch.deletescape.lawnchair.preferences.StyledIconPreference
+    <ch.deletescape.lawnchair.settings.ui.SubPreference
         android:title="@string/about"
-        android:summary="@string/about_pref_summary"
+        android:summary="@string/about_pref_summary_v2"
         android:icon="@drawable/ic_pref_about"
         android:layout="@layout/home_preference"
+        app:content="@xml/lawnchair_about_preferences"
         android:key="about"/>
 
 </android.support.v7.preference.PreferenceScreen>

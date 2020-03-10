@@ -31,9 +31,11 @@ import ch.deletescape.lawnchair.gestures.GestureController
 import ch.deletescape.lawnchair.gestures.GestureHandler
 import ch.deletescape.lawnchair.gestures.ui.SelectAppActivity
 import ch.deletescape.lawnchair.getIcon
+import ch.deletescape.lawnchair.globalsearch.ExternalSearchProviderController
 import com.android.launcher3.LauncherState
 import ch.deletescape.lawnchair.globalsearch.SearchProviderController
 import ch.deletescape.lawnchair.lawnchairPrefs
+import com.android.launcher3.LauncherState.SEARCH
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
 import com.android.launcher3.compat.LauncherAppsCompat
@@ -44,25 +46,6 @@ import com.android.launcher3.views.OptionsPopupView
 import com.android.launcher3.widget.WidgetsFullSheet
 import ninja.sesame.lib.bridge.v1.SesameFrontend
 import org.json.JSONObject
-
-@Keep
-open class OpenDrawerGestureHandler(context: Context, config: JSONObject?) : GestureHandler(context, config),
-        VerticalSwipeGestureHandler, StateChangeGestureHandler {
-
-    override val displayName: String = context.getString(R.string.action_open_drawer)
-    override val iconResource: Intent.ShortcutIconResource by lazy { Intent.ShortcutIconResource.fromContext(context, R.mipmap.ic_allapps_adaptive) }
-    override val requiresForeground = true
-
-    override fun onGestureTrigger(controller: GestureController, view: View?) {
-        controller.launcher.stateManager.goToState(LauncherState.ALL_APPS, true, getOnCompleteRunnable(controller))
-    }
-
-    open fun getOnCompleteRunnable(controller: GestureController): Runnable? = null
-
-    override fun getTargetState(): LauncherState {
-        return LauncherState.ALL_APPS
-    }
-}
 
 @Keep
 class OpenWidgetsGestureHandler(context: Context, config: JSONObject?) : GestureHandler(context, config) {
@@ -107,10 +90,10 @@ class OpenOverviewGestureHandler(context: Context, config: JSONObject?) : Gestur
 }
 
 @Keep
-class StartGlobalSearchGestureHandler(context: Context, config: JSONObject?) : GestureHandler(context, config) {
+class StartExternalSearchGestureHandler(context: Context, config: JSONObject?) : GestureHandler(context, config) {
 
-    private val searchProvider get() = SearchProviderController.getInstance(context).searchProvider
-    override val displayName: String = context.getString(R.string.action_global_search)
+    private val searchProvider get() = ExternalSearchProviderController.getInstance(context).searchProvider
+    override val displayName: String = context.getString(R.string.action_external_search)
     override val icon: Drawable by lazy { searchProvider.getIcon() }
     override val requiresForeground = true
 
@@ -122,21 +105,24 @@ class StartGlobalSearchGestureHandler(context: Context, config: JSONObject?) : G
                 }
                 context.startActivity(it)
             } catch (e: Exception) {
-                Log.e(this::class.java.name, "Failed to start global search", e)
+                Log.e(this::class.java.name, "Failed to start external search", e)
             }
         }
     }
 }
 
 @Keep
-class StartAppSearchGestureHandler(context: Context, config: JSONObject?) : OpenDrawerGestureHandler(context, config) {
+class StartAppSearchGestureHandler(context: Context, config: JSONObject?) : GestureHandler(context, config) {
 
+    private val searchProvider get() = SearchProviderController.getInstance(context).searchProvider
     override val displayName: String = context.getString(R.string.action_app_search)
     override val iconResource: Intent.ShortcutIconResource by lazy { Intent.ShortcutIconResource.fromContext(context, R.drawable.ic_search_shadow) }
     override val requiresForeground = Utilities.ATLEAST_P
 
-    override fun getOnCompleteRunnable(controller: GestureController): Runnable? {
-        return Runnable { controller.launcher.appsView.searchUiManager.startSearch() }
+    override fun onGestureTrigger(controller: GestureController, view: View?) {
+        controller.launcher.stateManager.goToState(SEARCH, true) {
+            controller.launcher.searchView.searchUiManager.startSearch()
+        }
     }
 }
 

@@ -59,10 +59,6 @@ public class PreviewBackground {
             new float[] {0, 0.999f, 1},
             Shader.TileMode.CLAMP);
 
-    private final PorterDuffXfermode mShadowPorterDuffXfermode
-            = new PorterDuffXfermode(PorterDuff.Mode.DST_OUT);
-    private RadialGradient mShadowShader = null;
-
     private final Matrix mShaderMatrix = new Matrix();
     private final Path mPath = new Path();
 
@@ -72,10 +68,12 @@ public class PreviewBackground {
     private float mColorMultiplier = 1f;
     private int mBgColor;
     private float mStrokeWidth;
+    private int mAlpha = BG_OPACITY;
     private int mStrokeAlpha = MAX_BG_OPACITY;
     private int mShadowAlpha = 255;
     private View mInvalidateDelegate;
 
+    int previewPadding;
     int previewSize;
     int basePreviewOffsetX;
     int basePreviewOffsetY;
@@ -93,23 +91,14 @@ public class PreviewBackground {
     private static final float ACCEPT_COLOR_MULTIPLIER = 1.5f;
 
     // Expressed on a scale from 0 to 255.
-    private static final int BG_OPACITY = 160;
+    private static final int BG_OPACITY = 120;
     private static final int MAX_BG_OPACITY = 225;
-    private static final int SHADOW_OPACITY = 40;
+    private static final int SHADOW_OPACITY = 80;
 
     private ValueAnimator mScaleAnimator;
+    private ObjectAnimator mAlphaAnimator;
     private ObjectAnimator mStrokeAlphaAnimator;
     private ObjectAnimator mShadowAnimator;
-
-    private boolean isInDrawer;
-
-    public PreviewBackground() {
-        this(false);
-    }
-
-    public PreviewBackground(boolean inDrawer) {
-        isInDrawer = inDrawer;
-    }
 
     private static final Property<PreviewBackground, Integer> STROKE_ALPHA =
             new Property<PreviewBackground, Integer>(Integer.class, "strokeAlpha") {
@@ -145,23 +134,13 @@ public class PreviewBackground {
         mBgColor = Themes.getAttrColor(launcher, android.R.attr.colorPrimary);
 
         DeviceProfile grid = launcher.getDeviceProfile();
-        previewSize = isInDrawer ? grid.allAppsFolderIconSizePx : grid.folderIconSizePx;
+        previewSize = grid.folderIconSizePx;
 
         basePreviewOffsetX = (availableSpaceX - previewSize) / 2;
-        basePreviewOffsetY = topPadding +
-                (isInDrawer ? grid.allAppsFolderIconOffsetYPx : grid.folderIconOffsetYPx);
+        basePreviewOffsetY = topPadding + grid.folderIconOffsetYPx;
 
         // Stroke width is 1dp
         mStrokeWidth = launcher.getResources().getDisplayMetrics().density;
-
-        float radius = getScaledRadius();
-        float shadowRadius = radius + mStrokeWidth;
-        int shadowColor = Color.argb(SHADOW_OPACITY, 0, 0, 0);
-        mShadowShader = new RadialGradient(0, 0, 1,
-                new int[] {shadowColor, Color.TRANSPARENT},
-                new float[] {radius / shadowRadius, 1},
-                Shader.TileMode.CLAMP);
-
         invalidate();
     }
 
@@ -181,6 +160,13 @@ public class PreviewBackground {
         return basePreviewOffsetY - (getScaledRadius() - getRadius());
     }
 
+    int getLeftPadding() {
+        return getOffsetX() - previewPadding;
+    }
+
+    int getTopPadding() {
+        return getOffsetY() - previewPadding;
+    }
     /**
      * Returns the progress of the scale animation, where 0 means the scale is at 1f
      * and 1 means the scale is at ACCEPT_SCALE_FACTOR.
@@ -222,46 +208,6 @@ public class PreviewBackground {
         mPaint.setColor(getBgColor());
 
         IconShape.getShape().drawShape(canvas, getOffsetX(), getOffsetY(), getScaledRadius(), mPaint);
-
-        drawShadow(canvas);
-    }
-
-    public void drawShadow(Canvas canvas) {
-        if (mShadowShader == null) {
-            return;
-        }
-
-        float radius = getScaledRadius();
-        float shadowRadius = radius + mStrokeWidth;
-        mPaint.setStyle(Paint.Style.FILL);
-        mPaint.setColor(Color.BLACK);
-        int offsetX = getOffsetX();
-        int offsetY = getOffsetY();
-        final int saveCount;
-        if (canvas.isHardwareAccelerated()) {
-            saveCount = canvas.saveLayer(offsetX - mStrokeWidth, offsetY,
-                    offsetX + radius + shadowRadius, offsetY + shadowRadius + shadowRadius, null);
-
-        } else {
-            saveCount = canvas.save();
-            canvas.clipPath(getClipPath(), Region.Op.DIFFERENCE);
-        }
-
-        mShaderMatrix.setScale(shadowRadius, shadowRadius);
-        mShaderMatrix.postTranslate(radius + offsetX, shadowRadius + offsetY);
-        mShadowShader.setLocalMatrix(mShaderMatrix);
-        mPaint.setAlpha(mShadowAlpha);
-        mPaint.setShader(mShadowShader);
-        canvas.drawPaint(mPaint);
-        mPaint.setAlpha(255);
-        mPaint.setShader(null);
-        if (canvas.isHardwareAccelerated()) {
-            mPaint.setXfermode(mShadowPorterDuffXfermode);
-            IconShape.getShape().drawShape(canvas, offsetX, offsetY, getScaledRadius(), mPaint);
-            mPaint.setXfermode(null);
-        }
-
-        canvas.restoreToCount(saveCount);
     }
 
     public void fadeInBackgroundShadow() {
@@ -294,6 +240,36 @@ public class PreviewBackground {
             }
         });
         mStrokeAlphaAnimator.start();
+    }
+
+    private static final Property<PreviewBackground, Integer> ALPHA =
+        new Property<PreviewBackground, Integer>(Integer.class, "alpha") {
+            @Override
+            public Integer get(PreviewBackground previewBackground) {
+                return previewBackground.mAlpha;
+            }
+
+            @Override
+            public void set(PreviewBackground previewBackground, Integer alpha) {
+                previewBackground.mAlpha = alpha;
+                previewBackground.invalidate();
+            }
+        };
+
+    public void fadeInBackground() {
+        if (mAlphaAnimator != null) {
+            mAlphaAnimator.cancel();
+        }
+        mAlphaAnimator = ObjectAnimator
+                .ofInt(this, ALPHA, 0, BG_OPACITY)
+                .setDuration(200);
+        mAlphaAnimator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mAlphaAnimator = null;
+            }
+        });
+        mAlphaAnimator.start();
     }
 
     public void drawBackgroundStroke(Canvas canvas) {

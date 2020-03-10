@@ -127,9 +127,9 @@ public class AddItemActivity extends BaseActivity implements OnLongClickListener
 
         // savedInstanceState is null when the activity is created the first time (i.e., avoids
         // duplicate logging during rotation)
-        if (savedInstanceState == null) {
-            logCommand(Action.Command.ENTRY);
-        }
+//        if (savedInstanceState == null) {
+//            logCommand(Action.Command.ENTRY);
+//        }
     }
 
     @Override
@@ -231,7 +231,6 @@ public class AddItemActivity extends BaseActivity implements OnLongClickListener
      * Called when the cancel button is clicked.
      */
     public void onCancelClick(View v) {
-        logCommand(Action.Command.CANCEL);
         finish();
     }
 
@@ -242,7 +241,6 @@ public class AddItemActivity extends BaseActivity implements OnLongClickListener
         if (mRequest.getRequestType() == PinItemRequest.REQUEST_TYPE_SHORTCUT) {
             InstallShortcutReceiver.queueShortcut(
                     new ShortcutInfoCompat(mRequest.getShortcutInfo()), this);
-            logCommand(Action.Command.CONFIRM);
             mRequest.accept();
             finish();
             return;
@@ -266,13 +264,11 @@ public class AddItemActivity extends BaseActivity implements OnLongClickListener
                 .queueWidget(mRequest.getAppWidgetProviderInfo(this), widgetId, this);
         mWidgetOptions.putInt(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId);
         mRequest.accept(mWidgetOptions);
-        logCommand(Action.Command.CONFIRM);
         finish();
     }
 
     @Override
     public void onBackPressed() {
-        logCommand(Action.Command.BACK);
         super.onBackPressed();
     }
 
@@ -307,10 +303,4 @@ public class AddItemActivity extends BaseActivity implements OnLongClickListener
                 .getInt(STATE_EXTRA_WIDGET_ID, mPendingBindWidgetId);
     }
 
-    private void logCommand(int command) {
-        getUserEventDispatcher().dispatchUserEvent(newLauncherEvent(
-                newCommandAction(command),
-                newItemTarget(mWidgetCell.getWidgetView(), mInstantAppResolver),
-                newContainerTarget(ContainerType.PINITEM)), null);
-    }
 }

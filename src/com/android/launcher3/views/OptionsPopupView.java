@@ -89,7 +89,6 @@ public class OptionsPopupView extends ArrowPopup
     }
 
     private void logTap(int action, int controlType) {
-        mLauncher.getUserEventDispatcher().logActionOnControl(action, controlType);
     }
 
     @Override
@@ -136,17 +135,14 @@ public class OptionsPopupView extends ArrowPopup
         popup.reorderAndShow(popup.getChildCount());
     }
 
-    public static void show(Launcher launcher, float x, float y, List<OptionItem> items) {
+    public static void showDefaultOptions(Launcher launcher, float x, float y) {
         float halfSize = launcher.getResources().getDimension(R.dimen.options_menu_thumb_size) / 2;
         if (x < 0 || y < 0) {
             x = launcher.getDragLayer().getWidth() / 2;
             y = launcher.getDragLayer().getHeight() / 2;
         }
         RectF target = new RectF(x - halfSize, y - halfSize, x + halfSize, y + halfSize);
-        show(launcher, target, items);
-    }
 
-    public static void showDefaultOptions(Launcher launcher, float x, float y) {
         ArrayList<OptionItem> options = new ArrayList<>();
         options.add(new OptionItem(R.string.wallpaper_button_text, R.drawable.ic_wallpaper,
                 ControlType.WALLPAPER_BUTTON, OptionsPopupView::startWallpaperPicker));
@@ -154,12 +150,12 @@ public class OptionsPopupView extends ArrowPopup
             options.add(new OptionItem(R.string.widget_button_text, R.drawable.ic_widget,
                     ControlType.WIDGETS_BUTTON, OptionsPopupView::onWidgetsClicked));
         }
-        options.add(new OptionItem(R.string.button_organize_screens, R.drawable.ic_pages, -1,
+        options.add(new OptionItem(R.string.button_overview_mode, R.drawable.ic_pages, -1,
                 OptionsPopupView::startOrganizer));
         options.add(new OptionItem(R.string.settings_button_text, R.drawable.ic_setting,
                 ControlType.SETTINGS_BUTTON, OptionsPopupView::startSettings));
 
-        show(launcher, x, y, options);
+        show(launcher, target, options);
     }
 
     public static boolean onWidgetsClicked(View view) {

@@ -39,7 +39,6 @@ class IconPackList(private val context: Context, private val manager: IconPackMa
     private val default by lazy { DefaultLoadedPack() }
 
     init {
-        reloadPacks()
     }
 
     private fun onPackListUpdated(packs: List<String>) {
