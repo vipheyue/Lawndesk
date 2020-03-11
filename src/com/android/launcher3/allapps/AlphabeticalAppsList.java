@@ -244,12 +244,19 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
 
         ArrayList<ComponentKey> recentLaunchedApps = mLauncher.getRecentLaunchedApps();
 
+        ArrayList<ComponentKey> removedApps = new ArrayList<>();
         for (ComponentKey recentLaunchedApp : recentLaunchedApps) {
             AppInfo app = mAllAppsStore.getApp(recentLaunchedApp);
             if (app != null) {
                 mApps.add(app);
+            } else {
+                removedApps.add(recentLaunchedApp);
             }
         }
+        if (removedApps.size() > 0) {
+            recentLaunchedApps.removeAll(removedApps);
+        }
+        mLauncher.setRecentLaunchedApps(recentLaunchedApps);
 
         for (AppInfo app : mAllAppsStore.getApps()) {
             if (mApps.size() >= mNumAppsPerRow) {

@@ -2523,6 +2523,11 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
         return mRecentLaunchedApps;
     }
 
+    public void setRecentLaunchedApps(ArrayList<ComponentKey> recentLaunchedApps) {
+        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(this);
+        prefs.getRecentLaunchedApps().replaceWith(recentLaunchedApps);
+    }
+
     public void addRecentLaunchedApps(ComponentKey ck) {
         if (ck == null || mRecentLaunchedApps == null) {
             return;
@@ -2533,8 +2538,7 @@ public class Launcher extends BaseDraggingActivity implements LauncherExterns,
         if (mRecentLaunchedApps.size() > 1 && mRecentLaunchedApps.size() > numAppsPerRow) {
             mRecentLaunchedApps.remove(mRecentLaunchedApps.size() - 1);
         }
-        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(this);
-        prefs.getRecentLaunchedApps().replaceWith(mRecentLaunchedApps);
+        setRecentLaunchedApps(mRecentLaunchedApps);
     }
 
     public void dismissLoading() {

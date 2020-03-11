@@ -107,7 +107,7 @@ public class SearchContainerView extends RelativeLayout implements Insettable,
     }
 
     private void onAppsUpdated() {
-
+        refreshAppsList();
     }
 
     public void refreshAppsList(){

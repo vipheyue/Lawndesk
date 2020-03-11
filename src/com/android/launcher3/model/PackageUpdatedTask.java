@@ -359,6 +359,16 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
             InstallShortcutReceiver.removeFromInstallQueue(context, removedPackages, mUser);
         }
 
+        if (!removedApps.isEmpty()) {
+            // Remove corresponding apps from All-Apps
+            scheduleCallbackTask(new CallbackTask() {
+                @Override
+                public void execute(Callbacks callbacks) {
+                    callbacks.bindAppInfosRemoved(removedApps);
+                }
+            });
+        }
+
         if (Utilities.ATLEAST_OREO && mOp == OP_ADD) {
             // Load widgets for the new package. Changes due to app updates are handled through
             // AppWidgetHost events, this is just to initialize the long-press options.
