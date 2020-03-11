@@ -255,8 +255,8 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
         }
         if (removedApps.size() > 0) {
             recentLaunchedApps.removeAll(removedApps);
+            mLauncher.setRecentLaunchedApps(recentLaunchedApps);
         }
-        mLauncher.setRecentLaunchedApps(recentLaunchedApps);
 
         for (AppInfo app : mAllAppsStore.getApps()) {
             if (mApps.size() >= mNumAppsPerRow) {
