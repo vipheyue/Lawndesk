@@ -116,7 +116,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
-    flavorDimensions "default", "custom", "build"
+    flavorDimensions "default", "custom"
 
     productFlavors {
         aosp {
@@ -148,18 +148,10 @@ android {
             dimension "custom"
         }
 
-        dev {
-            dimension "build"
-        }
-
     }
 
     android.applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def builtType = variant.buildType.name
-            def versionName = variant.versionName
-            def versionCode = variant.versionCode
-            def flavor = variant.flavorName
             outputFileName = "Lawndesk-${variant.versionName}.apk"
         }
     }
