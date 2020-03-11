@@ -351,7 +351,7 @@
     <string name="launcher_name">Lawndesk</string>
 
     <string name="add_apps_to_folder_title">Add apps to folder</string>
-    <string name="system_app">System App</string>
+    <string name="system_app">System Apps</string>
     <string name="locate_app_message">Locate this App on desktop?</string>
     <string name="initializing_desktop">Initializing desktop…</string>
 
