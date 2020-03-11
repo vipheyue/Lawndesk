@@ -2,6 +2,9 @@
 
 Lawndesk is an Android launcher without app drawer based on Lawnchair.
 
+
+[Download](https://github.com/renzhn/Lawndesk/releases)
+
 ### Building the App
 In your IDE’s *Build Variants* panel, pick any variant whose name starts with `quickstepLawnchairDev`.
 
