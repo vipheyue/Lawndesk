@@ -201,6 +201,7 @@ public class FocusLogic {
         ViewGroup hotseatParent = hotseatLayout.getShortcutsAndWidgets();
 
         boolean isHotseatHorizontal = !dp.isVerticalBarLayout();
+        boolean moreIconsInHotseatThanWorkspace = !FeatureFlags.NO_ALL_APPS_ICON &&
 
         int m, n;
         if (isHotseatHorizontal) {

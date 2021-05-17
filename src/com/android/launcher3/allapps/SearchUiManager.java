@@ -19,10 +19,9 @@ import static com.android.launcher3.LauncherState.ALL_APPS_HEADER;
 
 import android.graphics.Rect;
 import android.view.KeyEvent;
-import android.view.animation.Interpolator;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import android.widget.EditText;
 
-import androidx.annotation.Nullable;
 
 import com.android.launcher3.anim.PropertySetter;
 
@@ -34,13 +33,14 @@ public interface SearchUiManager {
     /**
      * Initializes the search manager.
      */
-    void initialize(AllAppsContainerView containerView);
+    void initialize(SearchContainerView searchContainerView);
 
     /**
      * Notifies the search manager to close any active search session.
      */
     void resetSearch();
 
+    void startSearch();
     /**
      * Called before dispatching a key event, in case the search manager wants to initialize
      * some UI beforehand.

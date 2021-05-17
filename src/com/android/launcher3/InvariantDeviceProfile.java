@@ -105,7 +105,9 @@ public class InvariantDeviceProfile {
      * Number of icons per row and column in the folder.
      */
     public int numFolderRows;
+    public int numFolderRowsOriginal;
     public int numFolderColumns;
+    public int numFolderColumnsOriginal;
     public float iconSize;
     public String iconShapePath;
     public float landscapeIconSize;
@@ -151,11 +153,11 @@ public class InvariantDeviceProfile {
         numColumns = p.numColumns;
         numFolderRows = p.numFolderRows;
         numFolderColumns = p.numFolderColumns;
-        iconSize = p.iconSize;
+        iconSize = is;
         iconShapePath = p.iconShapePath;
-        landscapeIconSize = p.landscapeIconSize;
+        landscapeIconSize = lis;
         iconBitmapSize = p.iconBitmapSize;
-        iconTextSize = p.iconTextSize;
+        iconTextSize = its;
         numHotseatIcons = p.numHotseatIcons;
         numAllAppsColumns = p.numAllAppsColumns;
         dbFile = p.dbFile;
@@ -259,8 +261,8 @@ public class InvariantDeviceProfile {
         defaultLayoutId = closestProfile.defaultLayoutId;
         demoModeLayoutId = closestProfile.demoModeLayoutId;
         numFolderRows = closestProfile.numFolderRows;
+        numFolderRowsOriginal = numFolderRows;
         numFolderColumns = closestProfile.numFolderColumns;
-        numAllAppsColumns = closestProfile.numAllAppsColumns;
 
         mExtraAttrs = closestProfile.extraAttrs;
 
@@ -535,7 +537,7 @@ public class InvariantDeviceProfile {
         }
 
         DisplayOption out = new DisplayOption();
-        for (int i = 0; i < points.size() && i < KNEARESTNEIGHBOR; ++i) {
+        if (FeatureFlags.IS_DOGFOOD_BUILD && FeatureFlags.NO_ALL_APPS_ICON) {
             p = points.get(i);
             float w = weight(width, height, p.minWidthDps, p.minHeightDps, WEIGHT_POWER);
             weights += w;

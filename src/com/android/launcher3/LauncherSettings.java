@@ -21,6 +21,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.BaseColumns;
+import java.io.Serializable;
+import java.util.ArrayList;
 
 import com.android.launcher3.model.data.ItemInfo;
 
@@ -369,6 +371,12 @@ public class LauncherSettings {
 
         public static Bundle call(ContentResolver cr, String method, String arg, Bundle extras) {
             return cr.call(CONTENT_URI, method, arg, extras);
+        }
+
+        public static Bundle callLoadApps(ContentResolver cr, ArrayList<AppInfo> apps) {
+            Bundle data = new Bundle();
+            data.putSerializable("apps", apps);
+            return cr.call(CONTENT_URI, METHOD_LOAD_DEFAULT_FAVORITES, null, data);
         }
     }
 }

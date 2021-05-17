@@ -77,7 +77,6 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
         IconLabelDotView, DraggableView, Reorderable {
 
     private static final int DISPLAY_WORKSPACE = 0;
-    private static final int DISPLAY_ALL_APPS = 1;
     private static final int DISPLAY_FOLDER = 2;
 
     private static final int[] STATE_PRESSED = new int[] {android.R.attr.state_pressed};
@@ -172,14 +171,12 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver, 
             setTextSize(TypedValue.COMPLEX_UNIT_PX, grid.iconTextSizePx);
             setCompoundDrawablePadding(grid.iconDrawablePaddingPx);
             defaultIconSize = grid.iconSizePx;
-        } else if (mDisplay == DISPLAY_ALL_APPS) {
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, grid.allAppsIconTextSizePx);
-            setCompoundDrawablePadding(grid.allAppsIconDrawablePaddingPx);
-            defaultIconSize = grid.allAppsIconSizePx;
+        } else if (display == DISPLAY_ALL_APPS) {
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, isTextHidden() ? 0 : grid.allAppsIconTextSizePx);
         } else if (mDisplay == DISPLAY_FOLDER) {
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, grid.folderChildTextSizePx);
-            setCompoundDrawablePadding(grid.folderChildDrawablePaddingPx);
-            defaultIconSize = grid.iconSizePx;
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, isTextHidden() ? 0 : grid.folderChildTextSizePx);
+            setCompoundDrawablePadding(grid.iconDrawablePaddingPx);
+            defaultIconSize = grid.folderChildIconSizePx;
         } else {
             // widget_selection or shortcut_popup
             defaultIconSize = grid.iconSizePx;

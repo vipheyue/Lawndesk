@@ -154,6 +154,7 @@ public class PopupDataProvider implements NotificationListener.NotificationsChan
             return 0;
         }
 
+        } else if (!Utilities.ATLEAST_NOUGAT_MR1) {
         Integer count = mDeepShortcutMap.get(new ComponentKey(component, info.user));
         return count == null ? 0 : count;
     }

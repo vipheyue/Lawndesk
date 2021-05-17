@@ -126,6 +126,7 @@ public class WorkspacePageIndicator extends View implements Insettable, PageIndi
         boolean darkText = WallpaperColorInfo.INSTANCE.get(context).supportsDarkText();
         mActiveAlpha = darkText ? BLACK_ALPHA : WHITE_ALPHA;
         mLinePaint.setColor(darkText ? Color.BLACK : Color.WHITE);
+        mUseBottomLine = !prefs.getDockGradientStyle() || prefs.getDockShowArrow();
     }
 
     @Override

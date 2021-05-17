@@ -72,7 +72,7 @@ import com.android.launcher3.shortcuts.ShortcutDragPreviewProvider;
 import com.android.launcher3.touch.ItemLongClickListener;
 import com.android.launcher3.util.PackageUserKey;
 import com.android.launcher3.util.ShortcutUtil;
-import com.android.launcher3.views.BaseDragLayer;
+import com.google.android.apps.nexuslauncher.allapps.ActionView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,8 +150,7 @@ public class PopupContainerWithArrow<T extends BaseDraggingActivity> extends Arr
 
     @Override
     public void logActionCommand(int command) {
-        mLauncher.getUserEventDispatcher().logActionCommand(
-                command, mOriginalIcon, getLogContainerType());
+                command, mOriginalIcon, ContainerType.DEEPSHORTCUTS);
     }
 
     @Override
@@ -175,8 +174,7 @@ public class PopupContainerWithArrow<T extends BaseDraggingActivity> extends Arr
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             BaseDragLayer dl = getPopupContainer();
             if (!dl.isEventOverView(this, ev)) {
-                mLauncher.getUserEventDispatcher().logActionTapOutside(
-                        newContainerTarget(ContainerType.DEEPSHORTCUTS));
+                        LoggerUtils.newContainerTarget(ContainerType.DEEPSHORTCUTS));
                 close(true);
 
                 // We let touches on the original icon go through so that users can launch
@@ -206,7 +204,7 @@ public class PopupContainerWithArrow<T extends BaseDraggingActivity> extends Arr
             return null;
         }
         ItemInfo item = (ItemInfo) icon.getTag();
-        if (!canShow(icon, item)) {
+        if (!DeepShortcutManager.supportsEdit(itemInfo) || icon instanceof ActionView) {
             return null;
         }
 
@@ -452,7 +450,6 @@ public class PopupContainerWithArrow<T extends BaseDraggingActivity> extends Arr
                     // Make sure we keep the original icon hidden while it is being dragged.
                     mOriginalIcon.setVisibility(INVISIBLE);
                 } else {
-                    mLauncher.getUserEventDispatcher().logDeepShortcutsOpen(mOriginalIcon);
                     if (!mIsAboveIcon) {
                         // Show the icon but keep the text hidden.
                         mOriginalIcon.setVisibility(VISIBLE);
@@ -498,19 +495,13 @@ public class PopupContainerWithArrow<T extends BaseDraggingActivity> extends Arr
         }
     }
 
-    @Override
-    public void fillInLogContainerData(ItemInfo childInfo, Target child,
+    public void fillInLogContainerData(View v, ItemInfo info, Target target, Target targetParent) {
             ArrayList<Target> parents) {
-        if (childInfo == NOTIFICATION_ITEM_INFO) {
-            child.itemType = ItemType.NOTIFICATION;
-        } else {
-            child.itemType = ItemType.DEEPSHORTCUT;
-            child.rank = childInfo.rank;
-        }
-        parents.add(newContainerTarget(ContainerType.DEEPSHORTCUTS));
-    }
-
-    @Override
+        if (info == NOTIFICATION_ITEM_INFO) {
+            target.itemType = ItemType.NOTIFICATION;
+            target.itemType = ItemType.DEEPSHORTCUT;
+            target.rank = info.rank;
+        targetParent.containerType = ContainerType.DEEPSHORTCUTS;
     protected void onCreateCloseAnimation(AnimatorSet anim) {
         // Animate original icon's text back in.
         anim.play(mOriginalIcon.createTextAlphaAnimator(true /* fadeIn */));

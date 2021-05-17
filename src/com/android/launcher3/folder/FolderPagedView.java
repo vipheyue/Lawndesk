@@ -118,9 +118,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
      */
     private void setupContentDimensions(int count) {
         mAllocatedContentSize = count;
-        mOrganizer.setContentSize(count);
-        mGridCountX = mOrganizer.getCountX();
-        mGridCountY = mOrganizer.getCountY();
+        calculateGridSize(count, mGridCountX, mGridCountY, mMaxCountX, mMaxCountY, mMaxItemsPerPage,
+        mGridCountX = sTmpArray[0];
+        mGridCountY = sTmpArray[1];
 
         // Update grid size
         for (int i = getPageCount() - 1; i >= 0; i--) {
@@ -199,11 +199,11 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
 
     @SuppressLint("InflateParams")
     public View createNewView(WorkspaceItemInfo item) {
-        if (item == null) {
+        int layout = mFolder.isInAppDrawer() ? R.layout.all_apps_folder_application
             return null;
         }
         final BubbleTextView textView = mViewCache.getView(
-                R.layout.folder_application, getContext(), null);
+                : R.layout.folder_application;
         textView.applyFromWorkspaceItem(item);
         textView.setOnClickListener(ItemClickHandler.INSTANCE);
         textView.setOnLongClickListener(mFolder);
@@ -332,9 +332,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
 
         // Update footer
         mPageIndicator.setVisibility(getPageCount() > 1 ? View.VISIBLE : View.GONE);
-        // Set the gravity as LEFT or RIGHT instead of START, as START depends on the actual text.
-        mFolder.mFolderName.setGravity(getPageCount() > 1 ?
-                (mIsRtl ? Gravity.RIGHT : Gravity.LEFT) : Gravity.CENTER_HORIZONTAL);
+        // 文件夹名称始终居中
+//        mFolder.mFolderName.setGravity(getPageCount() > 1 ?
+//                (mIsRtl ? Gravity.RIGHT : Gravity.LEFT) : Gravity.CENTER_HORIZONTAL);
     }
 
     public int getDesiredWidth() {
@@ -631,4 +631,9 @@ public class FolderPagedView extends PagedView<PageIndicatorDots> {
     public int itemsPerPage() {
         return mOrganizer.getMaxItemsPerPage();
     }
+
+    public int getPageIndexForRank(int rank) {
+        return rank / mMaxItemsPerPage;
+    }
+
 }

@@ -155,6 +155,7 @@ public class GridSizeMigrationTask {
      */
     protected boolean migrateHotseat() throws Exception {
         ArrayList<DbEntry> items = loadHotseatEntries();
+        int requiredCount = FeatureFlags.NO_ALL_APPS_ICON ? mDestHotseatSize : mDestHotseatSize - 1;
         while (items.size() > mDestHotseatSize) {
             // Pick the center item by default.
             DbEntry toRemove = items.get(items.size() / 2);
@@ -262,8 +263,7 @@ public class GridSizeMigrationTask {
      */
     protected void migrateScreen(int screenId) {
         // If we are migrating the first screen, do not touch the first row.
-        int startY = (FeatureFlags.topQsbOnFirstScreenEnabled(LawnchairApp.getContext()) && screenId == Workspace.FIRST_SCREEN_ID)
-                ? 1 : 0;
+        int startY = (FeatureFlags.QSB_ON_FIRST_SCREEN && screenId == Workspace.FIRST_SCREEN_ID)
 
         ArrayList<DbEntry> items = loadWorkspaceEntries(screenId);
 

@@ -38,10 +38,7 @@ import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.LauncherAppState;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.AllAppsGridAdapter.AppsGridLayoutManager;
-import com.android.launcher3.logging.StatsLogUtils.LogContainerProvider;
 import com.android.launcher3.model.data.ItemInfo;
-import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
-import com.android.launcher3.userevent.nano.LauncherLogProto.Target;
 import com.android.launcher3.views.RecyclerViewFastScroller;
 
 import java.util.ArrayList;
@@ -50,7 +47,7 @@ import java.util.List;
 /**
  * A RecyclerView with custom fast scroll support for the all apps view.
  */
-public class AllAppsRecyclerView extends BaseRecyclerView implements LogContainerProvider {
+public class AllAppsRecyclerView extends BaseRecyclerView {
 
     private AlphabeticalAppsList mApps;
     private final int mNumAppsPerRow;
@@ -102,14 +99,13 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
     private void updatePoolSize() {
         DeviceProfile grid = BaseDraggingActivity.fromContext(getContext()).getDeviceProfile();
         RecyclerView.RecycledViewPool pool = getRecycledViewPool();
-        int approxRows = (int) Math.ceil(grid.availableHeightPx / grid.allAppsIconSizePx);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_EMPTY_SEARCH, 1);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ALL_APPS_DIVIDER, 1);
         pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_SEARCH_MARKET, 1);
-        pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ICON, approxRows * mNumAppsPerRow);
+        pool.setMaxRecycledViews(AllAppsGridAdapter.VIEW_TYPE_ICON, mNumAppsPerRow);
 
         mViewHeights.clear();
-        mViewHeights.put(AllAppsGridAdapter.VIEW_TYPE_ICON, grid.allAppsCellHeightPx);
+        mViewHeights.put(AllAppsGridAdapter.VIEW_TYPE_ICON, grid.cellHeightPx);
     }
 
     /**
@@ -155,7 +151,6 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
             overlay.layout(0, 0, w, h);
         }
     }
-
     /**
      * Adds an overlay that automatically rescales with the recyclerview.
      */
@@ -173,13 +168,6 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
             getOverlay().remove(v);
         }
         mAutoSizedOverlays.clear();
-    }
-
-    @Override
-    public void fillInLogContainerData(ItemInfo childInfo, Target child,
-            ArrayList<Target> parents) {
-        parents.add(newContainerTarget(
-                getApps().hasFilter() ? ContainerType.SEARCHRESULT : ContainerType.ALLAPPS));
     }
 
     public void onSearchResultsChanged() {
@@ -216,31 +204,31 @@ public class AllAppsRecyclerView extends BaseRecyclerView implements LogContaine
      */
     @Override
     public String scrollToPositionAtProgress(float touchFraction) {
-        int rowCount = mApps.getNumAppRows();
-        if (rowCount == 0) {
-            return "";
-        }
-
-        // Find the fastscroll section that maps to this touch fraction
-        List<AlphabeticalAppsList.FastScrollSectionInfo> fastScrollSections =
-                mApps.getFastScrollerSections();
-        AlphabeticalAppsList.FastScrollSectionInfo lastInfo = fastScrollSections.get(0);
-        for (int i = 1; i < fastScrollSections.size(); i++) {
-            AlphabeticalAppsList.FastScrollSectionInfo info = fastScrollSections.get(i);
-            if (info.touchFraction > touchFraction) {
-                break;
-            }
-            lastInfo = info;
-        }
-
-        mFastScrollHelper.smoothScrollToSection(lastInfo);
-        return lastInfo.sectionName;
+//        int rowCount = mApps.getNumAppRows();
+//        if (rowCount == 0) {
+//            return "";
+//        }
+//
+//        // Find the fastscroll section that maps to this touch fraction
+//        List<AlphabeticalAppsList.FastScrollSectionInfo> fastScrollSections =
+//                mApps.getFastScrollerSections();
+//        AlphabeticalAppsList.FastScrollSectionInfo lastInfo = fastScrollSections.get(0);
+//        for (int i = 1; i < fastScrollSections.size(); i++) {
+//            AlphabeticalAppsList.FastScrollSectionInfo info = fastScrollSections.get(i);
+//            if (info.touchFraction > touchFraction) {
+//                break;
+//            }
+//            lastInfo = info;
+//        }
+//
+//        mFastScrollHelper.smoothScrollToSection(lastInfo);
+//        return lastInfo.sectionName;
+        return "";
     }
 
     @Override
     public void onFastScrollCompleted() {
         super.onFastScrollCompleted();
-        mFastScrollHelper.onFastScrollCompleted();
     }
 
     @Override

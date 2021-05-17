@@ -117,8 +117,7 @@ public abstract class SystemShortcut<T extends BaseDraggingActivity> extends Ite
                     (WidgetsBottomSheet) mTarget.getLayoutInflater().inflate(
                             R.layout.widgets_bottom_sheet, mTarget.getDragLayer(), false);
             widgetsBottomSheet.populateAndShow(mItemInfo);
-            mTarget.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
-                    ControlType.WIDGETS_BUTTON, view);
+                launcher.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
             mTarget.getStatsLogManager().logger().withItemInfo(mItemInfo)
                     .log(LAUNCHER_SYSTEM_SHORTCUT_WIDGETS_TAP);
         }
@@ -139,8 +138,7 @@ public abstract class SystemShortcut<T extends BaseDraggingActivity> extends Ite
             Rect sourceBounds = mTarget.getViewBounds(view);
             new PackageManagerHelper(mTarget).startDetailsActivityForInfo(
                     mItemInfo, sourceBounds, ActivityOptions.makeBasic().toBundle());
-            mTarget.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
-                    ControlType.APPINFO_TARGET, view);
+                activity.getUserEventDispatcher().logActionOnControl(Action.Touch.TAP,
             mTarget.getStatsLogManager().logger().withItemInfo(mItemInfo)
                     .log(LAUNCHER_SYSTEM_SHORTCUT_APP_INFO_TAP);
         }

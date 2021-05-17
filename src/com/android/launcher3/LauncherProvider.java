@@ -56,6 +56,9 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Xml;
 
+import ch.deletescape.lawnchair.flowerpot.Chinapot;
+import ch.deletescape.lawnchair.flowerpot.Flowerpot;
+import ch.deletescape.lawnchair.flowerpot.Flowerpot.FlowerpotManager;
 import com.android.launcher3.AutoInstallsLayout.LayoutParserCallback;
 import com.android.launcher3.LauncherSettings.Favorites;
 import com.android.launcher3.config.FeatureFlags;
@@ -67,7 +70,6 @@ import com.android.launcher3.provider.LauncherDbUtils.SQLiteTransaction;
 import com.android.launcher3.provider.RestoreDbTask;
 import com.android.launcher3.util.IOUtils;
 import com.android.launcher3.util.IntArray;
-import com.android.launcher3.util.IntSet;
 import com.android.launcher3.util.NoLocaleSQLiteHelper;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.util.Thunk;
@@ -81,7 +83,9 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -396,7 +400,13 @@ public class LauncherProvider extends ContentProvider {
                 return null;
             }
             case LauncherSettings.Settings.METHOD_LOAD_DEFAULT_FAVORITES: {
-                loadDefaultFavoritesIfNecessary();
+                ArrayList<AppInfo> apps = new ArrayList<>();
+                try {
+                    apps = (ArrayList<AppInfo>) extras.getSerializable("apps");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+                loadDefaultFavoritesIfNecessary(apps);
                 return null;
             }
             case LauncherSettings.Settings.METHOD_REMOVE_GHOST_WIDGETS: {
@@ -524,46 +534,17 @@ public class LauncherProvider extends ContentProvider {
      *   3) From a partner configuration APK, already in the system image
      *   4) The default configuration for the particular device
      */
-    synchronized private void loadDefaultFavoritesIfNecessary() {
+    synchronized private void loadDefaultFavoritesIfNecessary(ArrayList<AppInfo> apps) {
         SharedPreferences sp = Utilities.getPrefs(getContext());
 
         if (sp.getBoolean(mOpenHelper.getKey(EMPTY_DATABASE_CREATED), false)) {
             Log.d(TAG, "loading default workspace");
 
             AppWidgetHost widgetHost = mOpenHelper.newLauncherWidgetHost();
-            AutoInstallsLayout loader = createWorkspaceLoaderFromAppRestriction(widgetHost);
-            if (loader == null) {
-                loader = AutoInstallsLayout.get(getContext(),widgetHost, mOpenHelper);
-            }
-            if (loader == null) {
-                final Partner partner = Partner.get(getContext().getPackageManager());
-                if (partner != null && partner.hasDefaultLayout()) {
-                    final Resources partnerRes = partner.getResources();
-                    int workspaceResId = partnerRes.getIdentifier(Partner.RES_DEFAULT_LAYOUT,
-                            "xml", partner.getPackageName());
-                    if (workspaceResId != 0) {
-                        loader = new DefaultLayoutParser(getContext(), widgetHost,
-                                mOpenHelper, partnerRes, workspaceResId);
-                    }
-                }
-            }
-
-            final boolean usingExternallyProvidedLayout = loader != null;
-            if (loader == null) {
-                loader = getDefaultLayoutParser(widgetHost);
-            }
-
-            // There might be some partially restored DB items, due to buggy restore logic in
-            // previous versions of launcher.
             mOpenHelper.createEmptyDB(mOpenHelper.getWritableDatabase());
-            // Populate favorites table with initial favorites
-            if ((mOpenHelper.loadFavorites(mOpenHelper.getWritableDatabase(), loader) <= 0)
-                    && usingExternallyProvidedLayout) {
-                // Unable to load external layout. Cleanup and load the internal layout.
-                mOpenHelper.createEmptyDB(mOpenHelper.getWritableDatabase());
-                mOpenHelper.loadFavorites(mOpenHelper.getWritableDatabase(),
-                        getDefaultLayoutParser(widgetHost));
-            }
+            mOpenHelper.loadFavorites(mOpenHelper.getWritableDatabase(),
+                    getDefaultLayoutParser(widgetHost), apps, getContext());
+
             clearFlagEmptyDbCreated();
         }
     }
@@ -848,10 +829,10 @@ public class LauncherProvider extends ContentProvider {
                     convertShortcutsToLauncherActivities(db);
                 case 26:
                     // QSB was moved to the grid. Clear the first row on screen 0.
-                    if (FeatureFlags.topQsbOnFirstScreenEnabled(mContext) &&
-                            !LauncherDbUtils.prepareScreenZeroToHostQsb(mContext, db)) {
-                        break;
-                    }
+                    if (FeatureFlags.QSB_ON_FIRST_SCREEN &&
+//                            !LauncherDbUtils.prepareScreenZeroToHostQsb(mContext, db)) {
+//                        break;
+//                    }
                 case 27: {
                     // Update the favorites table so that the screen ids are ordered based on
                     // workspace page rank.
@@ -1082,9 +1063,90 @@ public class LauncherProvider extends ContentProvider {
                     Favorites.CONTAINER_DESKTOP);
         }
 
-        @Thunk int loadFavorites(SQLiteDatabase db, AutoInstallsLayout loader) {
+        @Thunk int loadFavorites(SQLiteDatabase db, AutoInstallsLayout loader,
+                ArrayList<AppInfo> allApps, Context context) {
+            ArrayList<Long> screenIds = new ArrayList<Long>();
             // TODO: Use multiple loaders with fall-back and transaction.
             int count = loader.loadLayout(db, new IntArray());
+            HashSet<String> addedAppComponents = loader.addedAppComponents;
+            int addAppCount = 0;
+            ArrayList<AppInfo> systemApps = new ArrayList<>();
+            ArrayList<AppInfo> apps = new ArrayList<>();
+            for(AppInfo app : allApps) {
+                if (app.getIntent() != null &&
+                        !addedAppComponents.contains(app.getTargetComponent().toString())) {
+                    if (Utilities.isSystemApp(context, app.getIntent())) {
+                        systemApps.add(app);
+                    } else {
+                        apps.add(app);
+                    }
+                    addAppCount++;
+                }
+            }
+            Utilities.debugNotification("init workspace added apps count: " + addAppCount);
+            loader.addFolder(systemApps, screenIds, context.getResources().getString(R.string.system_app));
+            HashMap<String, ArrayList<AppInfo>> categorized = new HashMap<>();
+
+            try {
+                if (Utilities.isChinaUser()) {
+                    Chinapot chinapot = new Chinapot(context);
+                    HashMap<String, String> categoryMap = chinapot.getCategoryMap();
+                    ArrayList<AppInfo> added = new ArrayList<>();
+                    for (AppInfo app : apps) {
+                        String name = categoryMap.get(app.getPackageName());
+                        if (name == null) {
+                            continue;
+                        }
+                        ArrayList<AppInfo> appsByCategory = categorized.get(name);
+                        if (appsByCategory == null) {
+                            appsByCategory = new ArrayList<>();
+                        }
+                        added.add(app);
+                        appsByCategory.add(app);
+                        categorized.put(name, appsByCategory);
+                    }
+                    apps.removeAll(added);
+                }
+
+                Collection<Flowerpot> pots = new FlowerpotManager(context).getAllPots();
+                for (Flowerpot pot : pots) {
+                    pot.ensureLoaded();
+                    String potName = pot.getDisplayName();
+                    if (potName == null) {
+                        continue;
+                    }
+                    Collection<ComponentKey> potApps = pot.apps.getMatches();
+                    ArrayList<AppInfo> appsByCategory = categorized.get(potName);
+                    if (appsByCategory == null) {
+                        appsByCategory = new ArrayList<>();
+                    }
+                    for (AppInfo app : apps) {
+                        if (potApps.contains(app.getComponentKey())) {
+                            appsByCategory.add(app);
+                        }
+                    }
+                    apps.removeAll(appsByCategory);
+                    categorized.put(potName, appsByCategory);
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            for (String name : categorized.keySet()) {
+                ArrayList<AppInfo> appsByCategory = categorized.get(name);
+                if (appsByCategory == null) {
+                    continue;
+                }
+                if (appsByCategory.size() == 1) {
+                    apps.add(0, appsByCategory.get(0));
+                } else if (appsByCategory.size() > 1) {
+                    apps.removeAll(appsByCategory);
+                    loader.addFolder(appsByCategory, screenIds, name);
+                }
+            }
+            for (AppInfo app : apps) {
+                loader.addApp(app, screenIds);
+            }
 
             // Ensure that the max ids are initialized
             mMaxItemId = initializeMaxItemId(db);

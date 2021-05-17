@@ -32,8 +32,10 @@ import android.view.animation.Interpolator;
 import com.android.launcher3.statemanager.BaseState;
 import com.android.launcher3.statemanager.StateManager;
 import com.android.launcher3.states.HintState;
+import ch.deletescape.lawnchair.states.FolderState;
 import com.android.launcher3.states.SpringLoadedState;
 import com.android.launcher3.testing.TestProtocol;
+import com.android.launcher3.uioverrides.AllAppsState;
 import com.android.launcher3.uioverrides.states.AllAppsState;
 import com.android.launcher3.uioverrides.states.OverviewState;
 import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
@@ -51,12 +53,8 @@ public abstract class LauncherState implements BaseState<LauncherState> {
      */
     public static final int NONE = 0;
     public static final int HOTSEAT_ICONS = 1 << 0;
-    public static final int HOTSEAT_SEARCH_BOX = 1 << 1;
-    public static final int ALL_APPS_HEADER = 1 << 2;
-    public static final int ALL_APPS_HEADER_EXTRA = 1 << 3; // e.g. app predictions
-    public static final int ALL_APPS_CONTENT = 1 << 4;
-    public static final int VERTICAL_SWIPE_INDICATOR = 1 << 5;
-    public static final int OVERVIEW_BUTTONS = 1 << 6;
+    public static final int SEARCH_VIEW = 1 << 1;
+    public static final int OPTIONS_VIEW = 1 << 6;
 
     /** Mask of all the items that are contained in the apps view. */
     public static final int APPS_VIEW_ITEM_MASK =
@@ -119,17 +117,17 @@ public abstract class LauncherState implements BaseState<LauncherState> {
     public static final LauncherState OVERVIEW = new OverviewState(OVERVIEW_STATE_ORDINAL);
     public static final LauncherState OVERVIEW_PEEK =
             OverviewState.newPeekState(OVERVIEW_PEEK_STATE_ORDINAL);
-    public static final LauncherState OVERVIEW_MODAL_TASK = OverviewState.newModalTaskState(
+    public static final LauncherState FOLDER = new AllAppsState(4);
             OVERVIEW_MODAL_TASK_STATE_ORDINAL);
     public static final LauncherState QUICK_SWITCH =
             OverviewState.newSwitchState(QUICK_SWITCH_STATE_ORDINAL);
+    public static final LauncherState SEARCH = new SearchState(4);
     public static final LauncherState BACKGROUND_APP =
             OverviewState.newBackgroundState(BACKGROUND_APP_STATE_ORDINAL);
 
     public final int ordinal;
 
     /**
-     * Used for containerType in {@link com.android.launcher3.logging.UserEventDispatcher}
      */
     public final int containerType;
 
@@ -189,22 +187,20 @@ public abstract class LauncherState implements BaseState<LauncherState> {
 
     public int getVisibleElements(Launcher launcher) {
         if (launcher.getDeviceProfile().isVerticalBarLayout()) {
-            return HOTSEAT_ICONS | VERTICAL_SWIPE_INDICATOR;
+            return HOTSEAT_ICONS;
         }
-        return HOTSEAT_ICONS | HOTSEAT_SEARCH_BOX | VERTICAL_SWIPE_INDICATOR;
+        return HOTSEAT_ICONS;
     }
 
     /**
      * Fraction shift in the vertical translation UI and related properties
      *
-     * @see com.android.launcher3.allapps.AllAppsTransitionController
      */
-    public float getVerticalProgress(Launcher launcher) {
-        return 1f;
-    }
 
-    public float getWorkspaceScrimAlpha(Launcher launcher) {
-        return 0;
+    public float getScrimProgress(Launcher launcher) {
+        return 1f;
+    public float getScrimProgress(Launcher launcher) {
+        return getVerticalProgress(launcher);
     }
 
     public float getOverviewScrimAlpha(Launcher launcher) {

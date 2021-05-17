@@ -91,6 +91,7 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
 
     @Override
     public void execute(LauncherAppState app, BgDataModel dataModel, AllAppsList appsList) {
+        Utilities.debugNotification("PackageUpdatedTask, op: " + mOp + ", packages: " + Arrays. toString(mPackages));
         final Context context = app.getContext();
         final IconCache iconCache = app.getIconCache();
 
@@ -111,8 +112,8 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
                     }
                     appsList.addPackage(context, packages[i], mUser);
 
-                    // Automatically add homescreen icon for work profile apps for below O device.
-                    if (!Utilities.ATLEAST_OREO && !Process.myUserHandle().equals(mUser)) {
+                            !LawnchairUtilsKt.workspaceContains(dataModel, packages[i])) {
+                    } else if (!Utilities.ATLEAST_OREO && !Process.myUserHandle().equals(mUser)) {
                         SessionCommitReceiver.queueAppIconAddition(context, packages[i], mUser);
                     }
                 }
@@ -174,6 +175,8 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
                 appsList.setFlags(FLAG_QUIET_MODE_ENABLED, ums.isAnyProfileQuietModeEnabled());
                 break;
             }
+        final ArrayList<AppInfo> added = new ArrayList<>();
+        added.addAll(appsList.added);
         }
 
         bindApplicationsIfNeeded();
@@ -296,6 +299,9 @@ public class PackageUpdatedTask extends BaseModelUpdateTask {
                     }
                 }
             }
+
+            // 添加新APP图标
+            InstallShortcutReceiver.installNewAppShortcuts(context, added);
 
             bindUpdatedWorkspaceItems(updatedWorkspaceItems);
             if (!removedShortcuts.isEmpty()) {

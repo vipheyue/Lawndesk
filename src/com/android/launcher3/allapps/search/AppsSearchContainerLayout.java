@@ -29,17 +29,15 @@ import android.text.SpannableStringBuilder;
 import android.text.method.TextKeyListener;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
-import android.view.View;
-import android.view.ViewGroup.MarginLayoutParams;
 import android.view.animation.Interpolator;
 import android.widget.EditText;
 
 import com.android.launcher3.BaseDraggingActivity;
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.ExtendedEditText;
 import com.android.launcher3.Insettable;
 import com.android.launcher3.R;
-import com.android.launcher3.allapps.AllAppsContainerView;
 import com.android.launcher3.allapps.AllAppsStore;
 import com.android.launcher3.allapps.AlphabeticalAppsList;
 import com.android.launcher3.allapps.SearchUiManager;
@@ -49,7 +47,7 @@ import com.android.launcher3.util.ComponentKey;
 import java.util.ArrayList;
 
 /**
- * Layout to contain the All-apps search UI.
+ * Layout to contain the search UI.
  */
 public class AppsSearchContainerLayout extends ExtendedEditText
         implements SearchUiManager, AllAppsSearchBarController.Callbacks,
@@ -60,10 +58,9 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     private final SpannableStringBuilder mSearchQueryBuilder;
 
     private AlphabeticalAppsList mApps;
-    private AllAppsContainerView mAppsView;
-
-    // The amount of pixels to shift down and overlap with the rest of the content.
-    private final int mContentOverlap;
+    private SearchContainerView mSearchContainerView;
+    // This value was used to position the QSB. We store it here for translationY animations.
+    private final float mFixedTranslationY;
 
     public AppsSearchContainerLayout(Context context) {
         this(context, null);
@@ -82,7 +79,6 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         mSearchQueryBuilder = new SpannableStringBuilder();
         Selection.setSelection(mSearchQueryBuilder, 0);
         setHint(prefixTextWithIcon(getContext(), R.drawable.ic_allapps_search, getHint()));
-
         mContentOverlap =
                 getResources().getDimensionPixelSize(R.dimen.all_apps_search_bar_field_height) / 2;
     }
@@ -90,13 +86,13 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mAppsView.getAppsStore().addUpdateListener(this);
+        mLauncher.getAppsView().getAppsStore().addUpdateListener(this);
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mAppsView.getAppsStore().removeUpdateListener(this);
+        mLauncher.getAppsView().getAppsStore().removeUpdateListener(this);
     }
 
     @Override
@@ -104,8 +100,7 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         // Update the width to match the grid padding
         DeviceProfile dp = mLauncher.getDeviceProfile();
         int myRequestedWidth = getSize(widthMeasureSpec);
-        int rowWidth = myRequestedWidth - mAppsView.getActiveRecyclerView().getPaddingLeft()
-                - mAppsView.getActiveRecyclerView().getPaddingRight();
+        int rowWidth = myRequestedWidth;
 
         int cellWidth = DeviceProfile.calculateCellWidth(rowWidth, dp.inv.numHotseatIcons);
         int iconVisibleSize = Math.round(ICON_VISIBLE_AREA_FACTOR * dp.iconSizePx);
@@ -120,25 +115,25 @@ public class AppsSearchContainerLayout extends ExtendedEditText
         super.onLayout(changed, left, top, right, bottom);
 
         // Shift the widget horizontally so that its centered in the parent (b/63428078)
-        View parent = (View) getParent();
-        int availableWidth = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
-        int myWidth = right - left;
-        int expectedLeft = parent.getPaddingLeft() + (availableWidth - myWidth) / 2;
-        int shift = expectedLeft - left;
-        setTranslationX(shift);
+//        View parent = (View) getParent();
+//        int availableWidth = parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight();
+//        int myWidth = right - left;
+//        int expectedLeft = parent.getPaddingLeft() + (availableWidth - myWidth) / 2;
+//        int shift = expectedLeft - left;
+//        setTranslationX(shift);
 
         offsetTopAndBottom(mContentOverlap);
     }
 
     @Override
-    public void initialize(AllAppsContainerView appsView) {
-        mApps = appsView.getApps();
-        mAppsView = appsView;
+    public void initialize(SearchContainerView searchContainerView) {
+        mApps = searchContainerView.getApps();
+        mSearchContainerView = searchContainerView;
         mSearchBarController.initialize(
-                new DefaultAppSearchAlgorithm(mApps.getApps()), this, mLauncher, this);
+                new FuzzyAppSearchAlgorithm(getContext(), mApps.getApps()), this, mLauncher, this);
+                this, mLauncher, this);
     }
 
-    @Override
     public void onAppsUpdated() {
         mSearchBarController.refreshSearchResult();
     }
@@ -168,45 +163,49 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     }
 
     @Override
-    public void onSearchResult(String query, ArrayList<ComponentKey> apps) {
+    public void onSearchResult(String query, ArrayList<ComponentKey> apps, List<String> suggestions) {
+        if (mApps.setOrderedFilter(null) || mApps.setSearchSuggestions(null)) {
         if (apps != null) {
             mApps.setOrderedFilter(apps);
+        }
+        if (apps != null) {
             notifyResultChanged();
-            mAppsView.setLastSearchQuery(query);
+            mSearchContainerView.setLastSearchQuery(query);
+        }
+    }
+
+    @Override
+    public void onSuggestions(List<String> suggestions) {
+        if (suggestions != null) {
+            mApps.setSearchSuggestions(suggestions);
         }
     }
 
     @Override
     public void clearSearchResult() {
-        if (mApps.setOrderedFilter(null)) {
-            notifyResultChanged();
-        }
-
-        // Clear the search query
-        mSearchQueryBuilder.clear();
-        mSearchQueryBuilder.clearSpans();
         Selection.setSelection(mSearchQueryBuilder, 0);
-        mAppsView.onClearSearchResult();
+        mSearchContainerView.onClearSearchResult();
     }
 
     private void notifyResultChanged() {
-        mAppsView.onSearchResultsChanged();
+        mSearchContainerView.onSearchResultsChanged();
     }
 
     @Override
     public void setInsets(Rect insets) {
-        MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
-        mlp.topMargin = insets.top;
-        requestLayout();
+//        MarginLayoutParams mlp = (MarginLayoutParams) getLayoutParams();
+        mlp.topMargin = Math.round(Math.max(-mFixedTranslationY, insets.top - mMarginTopAdjusting));
+//        requestLayout();
     }
-
+//
     @Override
     public float getScrollRangeDelta(Rect insets) {
-        if (mLauncher.getDeviceProfile().isVerticalBarLayout()) {
-            return 0;
-        } else {
-            return insets.bottom + insets.top;
-        }
+        DeviceProfile dp = mLauncher.getDeviceProfile();
+        if (dp.isVerticalBarLayout()) {
+//        } else {
+                    insets.bottom + mlp.topMargin + mFixedTranslationY);
+//        }
+        setPadding(insets.left, insets.top, insets.right, insets.bottom);
     }
 
     @Override
@@ -219,4 +218,5 @@ public class AppsSearchContainerLayout extends ExtendedEditText
     public EditText setTextSearchEnabled(boolean isEnabled) {
         return this;
     }
+
 }

@@ -7,7 +7,7 @@
 
     <!-- A string pointer to the original app name string. This allows derived projects to
      easily override the app name without providing all translations -->
-    <string name="derived_app_name" translatable="false">@string/app_name</string>
+    <string name="derived_app_name" translatable="false">@string/app_name_lawnchair</string>
 
     <!-- String representing the intent for search on the apps market. To specify a query, add
     q=<query> to the data to the intent -->
@@ -61,7 +61,7 @@
     <!-- Various classes overriden by projects/build flavors. -->
     <string name="app_filter_class" translatable="false"></string>
     <string name="user_event_dispatcher_class" translatable="false"></string>
-    <string name="folder_name_provider_class" translatable="false"></string>
+    <string name="user_event_dispatcher_class" translatable="false">com.google.android.apps.nexuslauncher.CustomAppPredictor</string>
     <string name="stats_log_manager_class" translatable="false"></string>
     <string name="app_transition_manager_class" translatable="false"></string>
     <string name="instant_app_resolver_class" translatable="false"></string>

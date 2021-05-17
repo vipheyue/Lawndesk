@@ -83,9 +83,9 @@ public class DeviceProfile {
     public float workspaceSpringLoadShrinkFactor;
     public final int workspaceSpringLoadedBottomSpace;
 
-    // Workspace page indicator
-    public final int workspacePageIndicatorHeight;
-    private final int mWorkspacePageIndicatorOverlapWorkspace;
+    // Drag handle
+    public int verticalDragHandleSizePx;
+    private final int verticalDragHandleOverlapWorkspace;
 
     // Workspace icons
     public int iconSizePx;
@@ -104,12 +104,8 @@ public class DeviceProfile {
     // Folder cell
     public int folderCellWidthPx;
     public int folderCellHeightPx;
-
-    // Folder child
-    public int folderChildIconSizePx;
-    public int folderChildTextSizePx;
-    public int folderChildDrawablePaddingPx;
-
+    public int folderCellPaddingX;
+    public int folderCellPaddingY;
     // Hotseat
     public int hotseatCellHeightPx;
     // In portrait: size = height, in landscape: size = width
@@ -119,13 +115,7 @@ public class DeviceProfile {
     // Start is the side next to the nav bar, end is the side next to the workspace
     public final int hotseatBarSidePaddingStartPx;
     public final int hotseatBarSidePaddingEndPx;
-
-    // All apps
-    public int allAppsCellHeightPx;
     public int allAppsCellWidthPx;
-    public int allAppsIconSizePx;
-    public int allAppsIconDrawablePaddingPx;
-    public float allAppsIconTextSizePx;
 
     // Widgets
     public final PointF appWidgetScale = new PointF(1.0f, 1.0f);
@@ -201,14 +191,13 @@ public class DeviceProfile {
             cellLayoutPaddingLeftRightPx = cellLayoutPaddingLeftRightMultiplier * cellLayoutPadding;
             cellLayoutBottomPaddingPx = 0;
         }
-
-        workspacePageIndicatorHeight = res.getDimensionPixelSize(
+        verticalDragHandleOverlapWorkspace =
+                res.getDimensionPixelSize(R.dimen.vertical_drag_handle_overlap_workspace);
                 R.dimen.workspace_page_indicator_height);
         mWorkspacePageIndicatorOverlapWorkspace =
                 res.getDimensionPixelSize(R.dimen.workspace_page_indicator_overlap_workspace);
 
-        iconDrawablePaddingOriginalPx =
-                res.getDimensionPixelSize(R.dimen.dynamic_grid_icon_drawable_padding);
+        iconDrawablePaddingOriginalPx = 0;
         dropTargetBarSizePx = res.getDimensionPixelSize(R.dimen.dynamic_grid_drop_target_size);
         workspaceSpringLoadedBottomSpace =
                 res.getDimensionPixelSize(R.dimen.dynamic_grid_min_spring_loaded_space);
@@ -249,10 +238,10 @@ public class DeviceProfile {
         }
         updateWorkspacePadding();
         // This is done last, after iconSizePx is calculated above.
-        mDotRendererWorkSpace = new DotRenderer(iconSizePx, IconShape.getShapePath(),
-                IconShape.DEFAULT_PATH_SIZE);
+        prefs.addOnPreferenceChangeListener(this, "pref_fullWidthWidgets", "pref_dockSearchBar",
+                "pref_twoRowDock", "pref_compactDock", "pref_allAppsPaddingScale", "pref_dockScale",
         mDotRendererAllApps = iconSizePx == allAppsIconSizePx ? mDotRendererWorkSpace :
-                new DotRenderer(allAppsIconSizePx, IconShape.getShapePath(),
+                "pref_iconTextScaleSB", "pref_allAppsIconTextScale",
                         IconShape.DEFAULT_PATH_SIZE);
     }
 
@@ -320,15 +309,11 @@ public class DeviceProfile {
         cellHeightPx = iconSizePx;
         autoResizeAllAppsCells();
     }
-
-    /**
-     * Re-computes the all-apps cell size to be independent of workspace
-     */
+        // In normal cases, All Apps cell height should equal the Workspace cell height.
+        // Since we are removing labels from the Workspace, we need to manually compute the
+        // All Apps cell height.
     public void autoResizeAllAppsCells() {
-        int topBottomPadding = allAppsIconDrawablePaddingPx * (isVerticalBarLayout() ? 2 : 1);
-        allAppsCellHeightPx = allAppsIconSizePx + allAppsIconDrawablePaddingPx
-                + Utilities.calculateTextHeight(allAppsIconTextSizePx)
-                + topBottomPadding * 2;
+                + Utilities.calculateTextHeight(allAppsIconTextSizePx) * labelRows
     }
 
     private void updateAvailableDimensions(Resources res) {
@@ -356,36 +341,26 @@ public class DeviceProfile {
         iconSizePx = Math.max(1, (int) (ResourceUtils.pxFromDp(invIconSizeDp, mInfo.metrics)
                 * scale));
         iconTextSizePx = (int) (Utilities.pxFromSp(inv.iconTextSize, mInfo.metrics) * scale);
-        iconDrawablePaddingPx = (int) (iconDrawablePaddingOriginalPx * scale);
+        iconDrawablePaddingPx =
+                (int) (iconDrawablePaddingOriginalPx * scale) -
 
         cellHeightPx = iconSizePx + iconDrawablePaddingPx
                 + Utilities.calculateTextHeight(iconTextSizePx);
-        int cellYPadding = (getCellSize().y - cellHeightPx) / 2;
-        if (iconDrawablePaddingPx > cellYPadding && !isVerticalLayout
-                && !isMultiWindowMode) {
-            // Ensures that the label is closer to its corresponding icon. This is not an issue
-            // with vertical bar layout or multi-window mode since the issue is handled separately
-            // with their calls to {@link #adjustToHideWorkspaceLabels}.
-            cellHeightPx -= (iconDrawablePaddingPx - cellYPadding);
-            iconDrawablePaddingPx = cellYPadding;
-        }
         cellWidthPx = iconSizePx + iconDrawablePaddingPx;
-
-        // All apps
         if (allAppsHasDifferentNumColumns()) {
-            allAppsIconSizePx = ResourceUtils.pxFromDp(inv.allAppsIconSize, mInfo.metrics);
-            allAppsIconTextSizePx = Utilities.pxFromSp(inv.allAppsIconTextSize, mInfo.metrics);
-            allAppsIconDrawablePaddingPx = iconDrawablePaddingOriginalPx;
+        float invAllAppsIconSizePx = isVerticalLayout ? inv.landscapeAllAppsIconSize : inv.allAppsIconSize;
+        allAppsIconTextSizeOriginalPx = (int) (Utilities.pxFromSp(inv.iconTextSize, dm) * scale);
+        allAppsIconDrawablePaddingPx = (int) (iconDrawablePaddingOriginalPx * scale) -
             // We use 4 below to ensure labels are closer to their corresponding icon.
             allAppsCellHeightPx = Math.round(allAppsIconSizePx + allAppsIconTextSizePx
                     + (4 * allAppsIconDrawablePaddingPx));
         } else {
             allAppsIconSizePx = iconSizePx;
-            allAppsIconTextSizePx = iconTextSizePx;
+                (int) (allAppsIconTextSizeOriginalPx - allAppsIconTextSizePx);
             allAppsIconDrawablePaddingPx = iconDrawablePaddingPx;
             allAppsCellHeightPx = getCellSize().y;
         }
-        allAppsCellWidthPx = allAppsIconSizePx + allAppsIconDrawablePaddingPx;
+        allAppsCellHeightPx = allAppsIconSizePx + allAppsIconDrawablePaddingPx + textHeight
 
         if (isVerticalBarLayout()) {
             // Always hide the Workspace text with vertical bar layout.
@@ -401,7 +376,7 @@ public class DeviceProfile {
 
         if (!isVerticalLayout) {
             int expectedWorkspaceHeight = availableHeightPx - hotseatBarSizePx
-                    - workspacePageIndicatorHeight - edgeMarginPx;
+                    - verticalDragHandleSizePx - topWorkspacePadding;
             float minRequiredHeight = dropTargetBarSizePx + workspaceSpringLoadedBottomSpace;
             workspaceSpringLoadShrinkFactor = Math.min(
                     res.getInteger(R.integer.config_workspaceSpringLoadShrinkPercentage) / 100.0f,
@@ -421,7 +396,12 @@ public class DeviceProfile {
         allAppsIconTextSizePx *= prefs.getAllAppsTextSizeFactor().get();
 
         // Folder icon
-        folderIconSizePx = IconNormalizer.getNormalizedCircleSize(iconSizePx);
+        float folderIconScale = prefs.getFolderIconScale();
+        if (folderIconScale < 0) {
+            folderIconSizePx = IconNormalizer.getNormalizedCircleSize(iconSizePx);
+        } else {
+            folderIconSizePx = (int) (IconNormalizer.getNormalizedCircleSize(iconSizePx) * folderIconScale);
+        }
         folderIconOffsetYPx = (iconSizePx - folderIconSizePx) / 2;
     }
 
@@ -429,7 +409,6 @@ public class DeviceProfile {
         int folderBottomPanelSize = res.getDimensionPixelSize(R.dimen.folder_label_padding_top)
                 + res.getDimensionPixelSize(R.dimen.folder_label_padding_bottom)
                 + Utilities.calculateTextHeight(res.getDimension(R.dimen.folder_label_text_size));
-
         updateFolderCellSize(1f, res);
 
         // Don't let the folder get too close to the edges of the screen.
@@ -454,18 +433,16 @@ public class DeviceProfile {
     }
 
     private void updateFolderCellSize(float scale, Resources res) {
-        folderChildIconSizePx = (int) (ResourceUtils.pxFromDp(inv.iconSize, mInfo.metrics) * scale);
-        folderChildTextSizePx =
-                (int) (res.getDimensionPixelSize(R.dimen.folder_child_text_size) * scale);
+        folderChildIconSizePx = (int) (Utilities.pxFromDp(inv.iconSize, dm) * scale);
+        int textHeight = Utilities.calculateTextHeight(folderChildTextSizePx) * folderLabelRowCount;
+        folderCellPaddingX = (int) (res.getDimensionPixelSize(R.dimen.folder_cell_x_padding) * scale);
+        folderCellPaddingY = (int) (res.getDimensionPixelSize(R.dimen.folder_cell_y_padding) * scale);
 
-        int textHeight = Utilities.calculateTextHeight(folderChildTextSizePx);
-        int cellPaddingX = (int) (res.getDimensionPixelSize(R.dimen.folder_cell_x_padding) * scale);
-        int cellPaddingY = (int) (res.getDimensionPixelSize(R.dimen.folder_cell_y_padding) * scale);
-
-        folderCellWidthPx = folderChildIconSizePx + 2 * cellPaddingX;
-        folderCellHeightPx = folderChildIconSizePx + 2 * cellPaddingY + textHeight;
-        folderChildDrawablePaddingPx = Math.max(0,
-                (folderCellHeightPx - folderChildIconSizePx - textHeight) / 3);
+        folderCellWidthPx = iconSizePx + 2 * folderCellPaddingX;
+        folderCellHeightPx = iconSizePx + 2 * folderCellPaddingY;
+        if (!prefs.getHideAppLabels()) {
+            folderCellHeightPx += textHeight;
+        }
     }
 
     public void updateInsets(Rect insets) {
@@ -514,14 +491,14 @@ public class DeviceProfile {
             padding.bottom = edgeMarginPx;
             if (isSeascape()) {
                 padding.left = hotseatBarSizePx;
-                padding.right = hotseatBarSidePaddingStartPx;
+                padding.right = verticalDragHandleSizePx;
             } else {
-                padding.left = hotseatBarSidePaddingStartPx;
+                padding.left = verticalDragHandleSizePx;
                 padding.right = hotseatBarSizePx;
             }
         } else {
-            int paddingBottom = hotseatBarSizePx + workspacePageIndicatorHeight
-                    - mWorkspacePageIndicatorOverlapWorkspace;
+            int paddingBottom = (dockVisible ? hotseatBarSizePx : 0) + verticalDragHandleSizePx
+                    - verticalDragHandleOverlapWorkspace;
             if (isTablet) {
                 // Pad the left and right of the workspace to ensure consistent spacing
                 // between all icons
@@ -579,17 +556,17 @@ public class DeviceProfile {
     public Rect getAbsoluteOpenFolderBounds() {
         if (isVerticalBarLayout()) {
             // Folders should only appear right of the drop target bar and left of the hotseat
-            return new Rect(mInsets.left + dropTargetBarSizePx + edgeMarginPx,
+            return new Rect(mInsets.left + dropTargetBarSizePx,
                     mInsets.top,
-                    mInsets.left + availableWidthPx - hotseatBarSizePx - edgeMarginPx,
+                    mInsets.left + availableWidthPx,
                     mInsets.top + availableHeightPx);
         } else {
             // Folders should only appear below the drop target bar and above the hotseat
-            return new Rect(mInsets.left + edgeMarginPx,
-                    mInsets.top + dropTargetBarSizePx + edgeMarginPx,
-                    mInsets.left + availableWidthPx - edgeMarginPx,
-                    mInsets.top + availableHeightPx - hotseatBarSizePx
-                            - workspacePageIndicatorHeight - edgeMarginPx);
+            return new Rect(mInsets.left,
+                    mInsets.top + dropTargetBarSizePx,
+                    mInsets.left + availableWidthPx,
+                    mInsets.top + availableHeightPx);
+                            - verticalDragHandleSizePx - edgeMarginPx);
         }
     }
 

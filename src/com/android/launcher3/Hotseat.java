@@ -16,8 +16,7 @@
 
 package com.android.launcher3;
 
-import static com.android.launcher3.logging.LoggerUtils.newContainerTarget;
-
+import static com.android.launcher3.LauncherState.ALL_APPS;
 import android.content.Context;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -27,14 +26,14 @@ import android.view.ViewDebug;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.android.launcher3.logging.StatsLogUtils.LogContainerProvider;
+import com.android.launcher3.logging.UserEventDispatcher.LogContainerProvider;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.userevent.nano.LauncherLogProto;
 import com.android.launcher3.userevent.nano.LauncherLogProto.Target;
 
 import java.util.ArrayList;
 
-public class Hotseat extends CellLayout implements LogContainerProvider, Insettable {
+public class Hotseat extends FrameLayout implements LogContainerProvider, Insettable {
 
     @ViewDebug.ExportedProperty(category = "launcher")
     private boolean mHasVerticalHotseat;
@@ -79,12 +78,12 @@ public class Hotseat extends CellLayout implements LogContainerProvider, Insetta
     }
 
     @Override
-    public void fillInLogContainerData(ItemInfo childInfo, Target child,
+    public void fillInLogContainerData(View v, ItemInfo info, Target target, Target targetParent) {
             ArrayList<Target> parents) {
         child.rank = childInfo.rank;
-        child.gridX = childInfo.cellX;
-        child.gridY = childInfo.cellY;
-        parents.add(newContainerTarget(LauncherLogProto.ContainerType.HOTSEAT));
+        target.gridX = info.cellX;
+        target.gridY = info.cellY;
+        targetParent.containerType = ContainerType.HOTSEAT;
     }
 
     @Override

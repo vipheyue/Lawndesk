@@ -44,7 +44,7 @@ import com.android.launcher3.BubbleTextView;
 import com.android.launcher3.R;
 import com.android.launcher3.allapps.AlphabeticalAppsList.AdapterItem;
 import com.android.launcher3.model.AppLaunchTracker;
-import com.android.launcher3.model.data.AppInfo;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.util.PackageManagerHelper;
 
 import java.util.List;
@@ -69,6 +69,7 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
     // A divider that separates the apps list and the search market button
     public static final int VIEW_TYPE_ALL_APPS_DIVIDER = 1 << 4;
 
+    public static final int VIEW_TYPE_FOLDER = 1 << 6;
     // Common view type masks
     public static final int VIEW_TYPE_MASK_DIVIDER = VIEW_TYPE_ALL_APPS_DIVIDER;
     public static final int VIEW_TYPE_MASK_ICON = VIEW_TYPE_ICON;
@@ -183,7 +184,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
 
     private int mAppsPerRow;
 
-    private OnFocusChangeListener mIconFocusListener;
 
     // The text to show when there are no search results and no market search handler.
     protected String mEmptySearchMessage;
@@ -240,10 +240,6 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
         return (viewType & viewTypeMask) != 0;
     }
 
-    public void setIconFocusListener(OnFocusChangeListener focusListener) {
-        mIconFocusListener = focusListener;
-    }
-
     /**
      * Sets the last search query that was made, used to show when there are no results and to also
      * seed the intent for searching the market.
@@ -268,12 +264,11 @@ public class AllAppsGridAdapter extends RecyclerView.Adapter<AllAppsGridAdapter.
                 BubbleTextView icon = (BubbleTextView) mLayoutInflater.inflate(
                         R.layout.all_apps_icon, parent, false);
                 icon.setOnClickListener(mOnIconClickListener);
-                icon.setOnLongClickListener(mOnIconLongClickListener);
-                icon.setLongPressTimeoutFactor(1f);
-                icon.setOnFocusChangeListener(mIconFocusListener);
+                icon.setOnLongClickListener(ItemLongClickListener.INSTANCE_ALL_APPS);
+                icon.setLongPressTimeout(ViewConfiguration.getLongPressTimeout());
 
                 // Ensure the all apps icon height matches the workspace icons in portrait mode.
-                icon.getLayoutParams().height = mLauncher.getDeviceProfile().allAppsCellHeightPx;
+                icon.getLayoutParams().height = mLauncher.getDeviceProfile().cellHeightPx;
                 return new ViewHolder(icon);
             case VIEW_TYPE_EMPTY_SEARCH:
                 return new ViewHolder(mLayoutInflater.inflate(R.layout.all_apps_empty_search,

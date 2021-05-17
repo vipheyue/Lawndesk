@@ -168,10 +168,6 @@ public class NotificationMainView extends FrameLayout implements SingleAxisSwipe
         Launcher launcher = Launcher.getLauncher(getContext());
         launcher.getPopupDataProvider().cancelNotification(
                 mNotificationInfo.notificationKey);
-        launcher.getUserEventDispatcher().logActionOnItem(
-                LauncherLogProto.Action.Touch.SWIPE,
-                LauncherLogProto.Action.Direction.RIGHT, // Assume all swipes are right for logging.
-                LauncherLogProto.ItemType.NOTIFICATION);
     }
 
     // SingleAxisSwipeDetector.Listener's

@@ -28,6 +28,7 @@ import static com.android.launcher3.LauncherState.FLAG_WORKSPACE_HAS_BACKGROUNDS
 import static com.android.launcher3.LauncherState.HINT_STATE;
 import static com.android.launcher3.LauncherState.HOTSEAT_ICONS;
 import static com.android.launcher3.LauncherState.NORMAL;
+import static com.android.launcher3.LauncherState.SEARCH_VIEW;
 import static com.android.launcher3.anim.Interpolators.LINEAR;
 import static com.android.launcher3.anim.Interpolators.ZOOM_OUT;
 import static com.android.launcher3.anim.PropertySetter.NO_ANIM_PROPERTY_SETTER;
@@ -43,6 +44,7 @@ import android.animation.ValueAnimator;
 import android.view.View;
 import android.view.animation.Interpolator;
 
+import ch.deletescape.lawnchair.globalsearch.ui.SearchContainerView;
 import com.android.launcher3.LauncherState.PageAlphaProvider;
 import com.android.launcher3.LauncherState.ScaleAndTranslation;
 import com.android.launcher3.allapps.AllAppsContainerView;
@@ -145,6 +147,10 @@ public class WorkspaceStateTransitionAnimation {
                     hotseatIconsAlpha, fadeInterpolator);
         }
 
+        // Set search view
+        SearchContainerView searchView = LawnchairLauncher.getLauncher(mLauncher).getSearchView();
+        propertySetter.setViewAlpha(searchView, (elements & SEARCH_VIEW) != 0 ? 1 : 0, fadeInterpolator);
+
         if (config.onlyPlayAtomicComponent()) {
             // Only the alpha and scale, handled above, are included in the atomic animation.
             return;
@@ -157,13 +163,12 @@ public class WorkspaceStateTransitionAnimation {
                 scaleAndTranslation.translationX, translationInterpolator);
         propertySetter.setFloat(mWorkspace, VIEW_TRANSLATE_Y,
                 scaleAndTranslation.translationY, translationInterpolator);
-
         Interpolator hotseatTranslationInterpolator = config.getInterpolator(
                 ANIM_HOTSEAT_TRANSLATE, translationInterpolator);
         propertySetter.setFloat(hotseat, VIEW_TRANSLATE_Y,
                 hotseatScaleAndTranslation.translationY, hotseatTranslationInterpolator);
-        propertySetter.setFloat(mWorkspace.getPageIndicator(), VIEW_TRANSLATE_Y,
-                hotseatScaleAndTranslation.translationY, hotseatTranslationInterpolator);
+        propertySetter.setViewAlpha(mLauncher.getHotseatSearchBox(),
+                (elements & HOTSEAT_SEARCH_BOX) != 0 ? 1 : 0, fadeInterpolator);
         propertySetter.setFloat(qsbView, VIEW_TRANSLATE_Y,
                 qsbScaleAndTranslation.translationY, hotseatTranslationInterpolator);
 

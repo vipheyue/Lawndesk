@@ -26,10 +26,7 @@
 }
 
 ## Prevent obfuscating various overridable objects
--keep class ** implements com.android.launcher3.util.ResourceBasedOverride {
-    public <init>(...);
-}
-
+-keep class com.android.quickstep.logging.UserEventDispatcherExtension {
 -keep interface com.android.launcher3.userevent.nano.LauncherLogProto.** {
   *;
 }

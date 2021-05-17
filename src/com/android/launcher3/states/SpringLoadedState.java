@@ -82,7 +82,7 @@ public class SpringLoadedState extends LauncherState {
 
     @Override
     public ScaleAndTranslation getHotseatScaleAndTranslation(Launcher launcher) {
-        return new ScaleAndTranslation(1, 0, 0);
+        return 0.3f;
     }
 
     @Override

@@ -24,14 +24,10 @@ import com.android.launcher3.BaseDraggingActivity;
 import com.android.launcher3.model.data.AppInfo;
 import com.android.launcher3.util.ComponentKey;
 import com.android.launcher3.util.ItemInfoMatcher;
-import com.android.launcher3.util.LabelComparator;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
 
 /**
  * The alphabetically sorted list of applications.
@@ -40,29 +36,8 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
 
     public static final String TAG = "AlphabeticalAppsList";
 
-    private static final int FAST_SCROLL_FRACTION_DISTRIBUTE_BY_ROWS_FRACTION = 0;
-    private static final int FAST_SCROLL_FRACTION_DISTRIBUTE_BY_NUM_SECTIONS = 1;
-
-    private final int mFastScrollDistributionMode = FAST_SCROLL_FRACTION_DISTRIBUTE_BY_NUM_SECTIONS;
-
     /**
-     * Info about a fast scroller section, depending if sections are merged, the fast scroller
-     * sections will not be the same set as the section headers.
-     */
-    public static class FastScrollSectionInfo {
-        // The section name
-        public String sectionName;
-        // The AdapterItem to scroll to for this section
-        public AdapterItem fastScrollToItem;
-        // The touch fraction that should map to this fast scroll section info
-        public float touchFraction;
-
-        public FastScrollSectionInfo(String sectionName) {
-            this.sectionName = sectionName;
-        }
-    }
-
-    /**
+        public FastScrollSectionInfo(String sectionName, int color) {
      * Info about a particular adapter item (can be either section or app)
      */
     public static class AdapterItem {
@@ -73,9 +48,6 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
         public int viewType;
 
         /** App-only properties */
-        // The section name of this app.  Note that there can be multiple items with different
-        // sectionNames in the same section
-        public String sectionName = null;
         // The row that this item shows up on
         public int rowIndex;
         // The index of this app in the row
@@ -85,12 +57,11 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
         // The index of this app not including sections
         public int appIndex = -1;
 
-        public static AdapterItem asApp(int pos, String sectionName, AppInfo appInfo,
+        public static AdapterItem asApp(int pos, AppInfo appInfo,
                 int appIndex) {
             AdapterItem item = new AdapterItem();
             item.viewType = AllAppsGridAdapter.VIEW_TYPE_ICON;
             item.position = pos;
-            item.sectionName = sectionName;
             item.appInfo = appInfo;
             item.appIndex = appIndex;
             return item;
@@ -128,10 +99,7 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
     private final List<AppInfo> mFilteredApps = new ArrayList<>();
     // The current set of adapter items
     private final ArrayList<AdapterItem> mAdapterItems = new ArrayList<>();
-    // The set of sections that we allow fast-scrolling to (includes non-merged sections)
-    private final List<FastScrollSectionInfo> mFastScrollerSections = new ArrayList<>();
-    // Is it the work profile app list.
-    private final boolean mIsWork;
+    private boolean mIsWork;
 
     // The of ordered component names as a result of a search query
     private ArrayList<ComponentKey> mSearchResults;
@@ -141,11 +109,10 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
     private int mNumAppRowsInAdapter;
     private ItemInfoMatcher mItemFilter;
 
-    public AlphabeticalAppsList(Context context, AllAppsStore appsStore, boolean isWork) {
+    public AlphabeticalAppsList(Context context, AllAppsStore appsStore) {
         mAllAppsStore = appsStore;
         mLauncher = BaseDraggingActivity.fromContext(context);
         mAppNameComparator = new AppInfoComparator(context);
-        mIsWork = isWork;
         mNumAppsPerRow = mLauncher.getDeviceProfile().inv.numColumns;
         mAllAppsStore.addUpdateListener(this);
     }
@@ -167,13 +134,6 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
      */
     public List<AppInfo> getApps() {
         return mApps;
-    }
-
-    /**
-     * Returns fast scroller sections of all the current filtered applications.
-     */
-    public List<FastScrollSectionInfo> getFastScrollerSections() {
-        return mFastScrollerSections;
     }
 
     /**
@@ -232,41 +192,32 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
         // Sort the list of apps
         mApps.clear();
 
+        ArrayList<ComponentKey> recentLaunchedApps = mLauncher.getRecentLaunchedApps();
+
+        ArrayList<ComponentKey> removedApps = new ArrayList<>();
+        for (ComponentKey recentLaunchedApp : recentLaunchedApps) {
+            AppInfo app = mAllAppsStore.getApp(recentLaunchedApp);
+            if (app != null) {
+                mApps.add(app);
+                removedApps.add(recentLaunchedApp);
+                        curLocale.getCountry().equals(Locale.SIMPLIFIED_CHINESE.getCountry());
+                String sectionName = getAndUpdateCachedSectionName(info);
+        }
+        if (removedApps.size() > 0) {
+            recentLaunchedApps.removeAll(removedApps);
+            mLauncher.setRecentLaunchedApps(recentLaunchedApps);
+        }
+
         for (AppInfo app : mAllAppsStore.getApps()) {
-            if (mItemFilter == null || mItemFilter.matches(app, null) || hasFilter()) {
+            if (mApps.size() >= mNumAppsPerRow) {
+                break;
+        } else {
+                getAndUpdateCachedSectionName(info);
                 mApps.add(app);
             }
         }
 
-        Collections.sort(mApps, mAppNameComparator);
-
-        // As a special case for some languages (currently only Simplified Chinese), we may need to
-        // coalesce sections
-        Locale curLocale = mLauncher.getResources().getConfiguration().locale;
-        boolean localeRequiresSectionSorting = curLocale.equals(Locale.SIMPLIFIED_CHINESE);
-        if (localeRequiresSectionSorting) {
-            // Compute the section headers. We use a TreeMap with the section name comparator to
-            // ensure that the sections are ordered when we iterate over it later
-            TreeMap<String, ArrayList<AppInfo>> sectionMap = new TreeMap<>(new LabelComparator());
-            for (AppInfo info : mApps) {
-                // Add the section to the cache
-                String sectionName = info.sectionName;
-
-                // Add it to the mapping
-                ArrayList<AppInfo> sectionApps = sectionMap.get(sectionName);
-                if (sectionApps == null) {
-                    sectionApps = new ArrayList<>();
-                    sectionMap.put(sectionName, sectionApps);
-                }
-                sectionApps.add(info);
-            }
-
-            // Add each of the section apps to the list in order
-            mApps.clear();
-            for (Map.Entry<String, ArrayList<AppInfo>> entry : sectionMap.entrySet()) {
-                mApps.addAll(entry.getValue());
-            }
-        }
+//        Collections.sort(mApps, mAppNameComparator);
 
         // Recompose the set of adapter items from the current set of apps
         updateAdapterItems();
@@ -289,33 +240,30 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
     }
 
     private void refillAdapterItems() {
-        String lastSectionName = null;
-        FastScrollSectionInfo lastFastScrollerSectionInfo = null;
         int position = 0;
         int appIndex = 0;
 
         // Prepare to update the list of sections, filtered apps, etc.
         mFilteredApps.clear();
-        mFastScrollerSections.clear();
         mAdapterItems.clear();
 
         // Recreate the filtered and sectioned apps (for convenience for the grid layout) from the
         // ordered set of sections
         for (AppInfo info : getFiltersAppInfos()) {
-            String sectionName = info.sectionName;
-
-            // Create a new section if the section names do not match
-            if (!sectionName.equals(lastSectionName)) {
-                lastSectionName = sectionName;
-                lastFastScrollerSectionInfo = new FastScrollSectionInfo(sectionName);
-                mFastScrollerSections.add(lastFastScrollerSectionInfo);
-            }
+            String sectionName = getAndUpdateCachedSectionName(info);
+//
+//            // Create a new section if the section names do not match
+//            if (!sectionName.equals(lastSectionName)) {
+//                lastSectionName = sectionName;
+                lastFastScrollerSectionInfo = new FastScrollSectionInfo(sectionName, color);
+//                mFastScrollerSections.add(lastFastScrollerSectionInfo);
+//            }
 
             // Create an app item
-            AdapterItem appItem = AdapterItem.asApp(position++, sectionName, info, appIndex++);
-            if (lastFastScrollerSectionInfo.fastScrollToItem == null) {
-                lastFastScrollerSectionInfo.fastScrollToItem = appItem;
-            }
+            AdapterItem appItem = AdapterItem.asApp(position++, info, appIndex++);
+//            if (lastFastScrollerSectionInfo.fastScrollToItem == null) {
+//                lastFastScrollerSectionInfo.fastScrollToItem = appItem;
+//            }
             mAdapterItems.add(appItem);
             mFilteredApps.add(info);
         }
@@ -328,6 +276,13 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
                 mAdapterItems.add(AdapterItem.asAllAppsDivider(position++));
             }
             mAdapterItems.add(AdapterItem.asMarketSearch(position++));
+        }
+
+        // Search suggestions should be all the way to the top
+        if (hasFilter() && hasSuggestions()) {
+            for (String suggestion : mSearchSuggestions) {
+                mAdapterItems.add(AdapterItem.asSearchSuggestion(position++, suggestion));
+            }
         }
 
         if (mNumAppsPerRow != 0) {
@@ -352,45 +307,25 @@ public class AlphabeticalAppsList implements AllAppsStore.OnUpdateListener {
                 }
             }
             mNumAppRowsInAdapter = rowIndex + 1;
-
-            // Pre-calculate all the fast scroller fractions
-            switch (mFastScrollDistributionMode) {
-                case FAST_SCROLL_FRACTION_DISTRIBUTE_BY_ROWS_FRACTION:
-                    float rowFraction = 1f / mNumAppRowsInAdapter;
-                    for (FastScrollSectionInfo info : mFastScrollerSections) {
-                        AdapterItem item = info.fastScrollToItem;
-                        if (!AllAppsGridAdapter.isIconViewType(item.viewType)) {
-                            info.touchFraction = 0f;
-                            continue;
-                        }
-
-                        float subRowFraction = item.rowAppIndex * (rowFraction / mNumAppsPerRow);
-                        info.touchFraction = item.rowIndex * rowFraction + subRowFraction;
-                    }
-                    break;
-                case FAST_SCROLL_FRACTION_DISTRIBUTE_BY_NUM_SECTIONS:
-                    float perSectionTouchFraction = 1f / mFastScrollerSections.size();
-                    float cumulativeTouchFraction = 0f;
-                    for (FastScrollSectionInfo info : mFastScrollerSections) {
-                        AdapterItem item = info.fastScrollToItem;
-                        if (!AllAppsGridAdapter.isIconViewType(item.viewType)) {
-                            info.touchFraction = 0f;
-                            continue;
-                        }
-                        info.touchFraction = cumulativeTouchFraction;
-                        cumulativeTouchFraction += perSectionTouchFraction;
-                    }
-                    break;
-            }
         }
     }
 
     private List<AppInfo> getFiltersAppInfos() {
-        if (mSearchResults == null) {
-            return mApps;
-        }
         ArrayList<AppInfo> result = new ArrayList<>();
+        if (mSearchResults == null) {
+            for (AppInfo app : mApps) {
+                if (result.size() >= mNumAppsPerRow) {
+                    break;
+                }
+                result.add(app);
+            }
+            return result;
+        }
         for (ComponentKey key : mSearchResults) {
+            // 只显示一行
+            if (result.size() >= mNumAppsPerRow) {
+                break;
+            }
             AppInfo match = mAllAppsStore.getApp(key);
             if (match != null) {
                 result.add(match);

@@ -34,11 +34,12 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
-import androidx.annotation.Nullable;
+import ch.deletescape.lawnchair.LawnchairUtilsKt;
 import androidx.annotation.WorkerThread;
 
 import com.android.launcher3.config.FeatureFlags;
 import com.android.launcher3.icons.IconCache;
+import com.android.launcher3.folder.FolderAddAppItem;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.model.AddWorkspaceItemsTask;
 import com.android.launcher3.model.AllAppsList;
@@ -126,6 +127,7 @@ public class LauncherModel extends LauncherApps.Callback implements InstallSessi
         }
     };
 
+        public void verifyApplications(ArrayList<AppInfo> apps);
     LauncherModel(LauncherAppState app, IconCache iconCache, AppFilter appFilter) {
         mApp = app;
         mBgAllAppsList = new AllAppsList(iconCache, appFilter);
@@ -252,14 +254,12 @@ public class LauncherModel extends LauncherApps.Callback implements InstallSessi
                     ((Launcher) cb).recreate();
                 }
             }
-        }
-    }
-
     /**
      * Reloads the workspace items from the DB and re-binds the workspace. This should generally
      * not be called as DB updates are automatically followed by UI update
      */
     public void forceReload() {
+        Utilities.debugNotification("LauncherModel.forceReload");
         synchronized (mLock) {
             // Stop any existing loaders first, so they don't set mModelLoaded to true later
             stopLoader();
@@ -394,6 +394,16 @@ public class LauncherModel extends LauncherApps.Callback implements InstallSessi
     }
 
     @Override
+    public static ArrayList<Long> loadFolderIDsDb(Context context) {
+        final ContentResolver contentResolver = context.getContentResolver();
+        final Uri favoritesUri = LauncherSettings.Favorites.CONTENT_URI;
+
+        return LauncherDbUtils.getFolderIdsFromCursor(contentResolver.query(
+                favoritesUri, null,
+                LauncherSettings.Favorites.ITEM_TYPE + "=" + LauncherSettings.Favorites.ITEM_TYPE_FOLDER, null,
+                null));
+    }
+
     public void onInstallSessionCreated(final PackageInstallInfo sessionInfo) {
         if (FeatureFlags.PROMISE_APPS_IN_ALL_APPS.get()) {
             enqueueModelUpdateTask(new BaseModelUpdateTask() {
@@ -617,4 +627,22 @@ public class LauncherModel extends LauncherApps.Callback implements InstallSessi
     public void clearIconCache() {
         mIconCache.clearIconCache();
     }
+
+    public static ArrayList<FolderAddAppItem> getFolderAddAppItems() {
+        ArrayList<FolderAddAppItem> items = new ArrayList<>();
+        synchronized (sBgDataModel) {
+            for (ItemInfo item : sBgDataModel.workspaceItems) {
+                if (item instanceof ShortcutInfo) {
+                    ShortcutInfo shortcut = (ShortcutInfo) item;
+                    if (shortcut.itemType != LauncherSettings.Favorites.ITEM_TYPE_APPLICATION ||
+                            shortcut.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                        continue;
+                    }
+                    items.add(new FolderAddAppItem((ShortcutInfo) item));
+                }
+            }
+        }
+        return items;
+    }
+
 }

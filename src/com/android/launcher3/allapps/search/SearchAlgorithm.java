@@ -15,6 +15,8 @@
  */
 package com.android.launcher3.allapps.search;
 
+import com.android.launcher3.allapps.search.AllAppsSearchBarController;
+
 /**
  * An interface for handling search.
  */

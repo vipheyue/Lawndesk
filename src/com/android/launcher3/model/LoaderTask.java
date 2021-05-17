@@ -24,7 +24,7 @@ import static com.android.launcher3.model.ModelUtils.filterCurrentWorkspaceItems
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_LOCKED_USER;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_SAFEMODE;
 import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_DISABLED_SUSPENDED;
-import static com.android.launcher3.util.Executors.MODEL_EXECUTOR;
+import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 import static com.android.launcher3.util.PackageManagerHelper.hasShortcutsPermission;
 import static com.android.launcher3.util.PackageManagerHelper.isSystemApp;
 
@@ -47,6 +47,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.util.LongSparseArray;
 import android.util.MutableInt;
+import ch.deletescape.lawnchair.LawnchairPreferences;
 import android.util.TimingLogger;
 
 import androidx.annotation.WorkerThread;
@@ -187,6 +188,10 @@ public class LoaderTask implements Runnable {
         Object traceToken = TraceHelper.INSTANCE.beginSection(TAG);
         TimingLogger logger = new TimingLogger(TAG, "run");
         try (LauncherModel.LoaderTransaction transaction = mApp.getModel().beginLoader(this)) {
+
+            TraceHelper.partitionSection(TAG, "step 1.0: loading all apps");
+            loadAllApps();
+
             List<ShortcutInfo> allShortcuts = new ArrayList<>();
             loadWorkspace(allShortcuts);
             loadCachedPredictions();
@@ -205,14 +210,13 @@ public class LoaderTask implements Runnable {
             logger.addSplit("step 1 complete");
             verifyNotStopped();
 
-            // second step
-            List<LauncherActivityInfo> allActivityList = loadAllApps();
-            logger.addSplit("loadAllApps");
-
-            verifyNotStopped();
+            TraceHelper.partitionSection(TAG, "step 2.1: loading all apps");
+            loadAllApps();
+            TraceHelper.partitionSection(TAG, "step 2.2: Binding all apps");
             mResults.bindAllApps();
             logger.addSplit("bindAllApps");
 
+            // second step
             verifyNotStopped();
             IconCacheUpdateHandler updateHandler = mIconCache.getUpdateHandler();
             setIgnorePackages(updateHandler);
@@ -223,7 +227,7 @@ public class LoaderTask implements Runnable {
 
             if (FeatureFlags.ENABLE_DEEP_SHORTCUT_ICON_CACHE.get()) {
                 verifyNotStopped();
-                logger.addSplit("save shortcuts in icon cache");
+            TraceHelper.partitionSection(TAG, "step 2.3: Update icon cache");
                 updateHandler.updateIcons(allShortcuts, new ShortcutCachingLogic(),
                         mApp.getModel()::onPackageIconsUpdated);
             }
@@ -285,6 +289,12 @@ public class LoaderTask implements Runnable {
             logger.dumpToLog();
         }
         TraceHelper.INSTANCE.endSection(traceToken);
+
+        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(mApp.getContext());
+        if (!prefs.getDesktopInitialized()) {
+            mApp.getLauncher().dismissLoading();
+        }
+
     }
 
     public synchronized void stopLocked() {
@@ -328,8 +338,7 @@ public class LoaderTask implements Runnable {
         }
 
         Log.d(TAG, "loadWorkspace: loading default favorites");
-        LauncherSettings.Settings.call(contentResolver,
-                LauncherSettings.Settings.METHOD_LOAD_DEFAULT_FAVORITES);
+        LauncherSettings.Settings.callLoadApps(contentResolver, mBgAllAppsList.data);
 
         synchronized (mBgDataModel) {
             mBgDataModel.clear();
@@ -340,6 +349,7 @@ public class LoaderTask implements Runnable {
 
             final PackageUserKey tempPackageKey = new PackageUserKey(null, null);
             mFirstScreenBroadcast = new FirstScreenBroadcast(installingPkgs);
+            mBgDataModel.folderIDs.addAll(LauncherModel.loadFolderIDsDb(context));
 
             Map<ShortcutKey, ShortcutInfo> shortcutKeyToPinnedShortcuts = new HashMap<>();
             final LoaderCursor c = new LoaderCursor(
@@ -441,30 +451,33 @@ public class LoaderTask implements Runnable {
                                     mLauncherApps.isPackageEnabled(targetPkg, c.user);
 
                             // If it's a deep shortcut, we'll use pinned shortcuts to restore it
-                            if (cn != null && validTarget && c.itemType
+                            if (cn != null && validTarget) {
                                     != LauncherSettings.Favorites.ITEM_TYPE_DEEP_SHORTCUT) {
-                                // If the apk is present and the shortcut points to a specific
-                                // component.
-
-                                // If the component is already present
-                                if (mLauncherApps.isActivityEnabled(cn, c.user)) {
-                                    // no special handling necessary for this item
-                                    c.markRestored();
-                                } else {
-                                    // Gracefully try to find a fallback activity.
-                                    intent = pmHelper.getAppLaunchIntent(targetPkg, c.user);
-                                    if (intent != null) {
-                                        c.restoreFlag = 0;
-                                        c.updater().put(
-                                                LauncherSettings.Favorites.INTENT,
-                                                intent.toUri(0)).commit();
-                                        cn = intent.getComponent();
-                                    } else {
-                                        c.markDeleted("Unable to find a launch target");
-                                        continue;
-                                    }
-                                }
-                            }
+//                                // If the apk is present and the shortcut points to a specific
+//                                // component.
+//
+//                                // If the component is already present
+                                if (mLauncherApps.isActivityEnabledForProfile(cn, c.user)) {
+//                                    // no special handling necessary for this item
+//                                    c.markRestored();
+//                                } else {
+                                        // We allow auto install apps to have their intent
+                                        // updated after an install.
+//                                        intent = pmHelper.getAppLaunchIntent(targetPkg, c.user);
+//                                        if (intent != null) {
+//                                            c.restoreFlag = 0;
+//                                            c.updater().put(
+//                                                    LauncherSettings.Favorites.INTENT,
+//                                                    intent.toUri(0)).commit();
+//                                            cn = intent.getComponent();
+//                                        } else {
+//                                            c.markDeleted("Unable to find a launch target");
+//                                            continue;
+//                                        }
+                                        // The app is installed but the component is no
+                                        // longer available.
+//                                }
+//                            }
                             // else if cn == null => can't infer much, leave it
                             // else if !validPkg => could be restored icon or missing sd-card
 
@@ -789,6 +802,7 @@ public class LoaderTask implements Runnable {
                     for (int folderId : deletedFolderIds) {
                         mBgDataModel.workspaceItems.remove(mBgDataModel.folders.get(folderId));
                         mBgDataModel.folders.remove(folderId);
+                    mBgDataModel.folderIDs.remove(folderId);
                         mBgDataModel.itemsIdMap.remove(folderId);
                     }
 

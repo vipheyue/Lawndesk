@@ -16,7 +16,7 @@
 
 package com.android.launcher3.folder;
 
-import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
+import static com.android.launcher3.folder.NineFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 import static com.android.launcher3.folder.PreviewItemManager.INITIAL_ITEM_ANIMATION_DURATION;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_AUTO_LABELED;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_FOLDER_AUTO_LABELING_SKIPPED_EMPTY_PRIMARY;
@@ -31,6 +31,7 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Pair;
 import android.util.Property;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -111,7 +112,7 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
     private boolean mBackgroundIsVisible = true;
 
     FolderGridOrganizer mPreviewVerifier;
-    ClippedFolderIconLayoutRule mPreviewLayoutRule;
+    NineFolderIconLayoutRule mPreviewLayoutRule;
     private PreviewItemManager mPreviewItemManager;
     private PreviewItemDrawingParams mTmpParams = new PreviewItemDrawingParams(0, 0, 0, 0);
     private List<WorkspaceItemInfo> mCurrentPreviewItems = new ArrayList<>();
@@ -161,7 +162,7 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
 
     private void init() {
         mLongPressHelper = new CheckLongPressHelper(this);
-        mPreviewLayoutRule = new ClippedFolderIconLayoutRule();
+        mPreviewLayoutRule = new NineFolderIconLayoutRule();
         mPreviewItemManager = new PreviewItemManager(this);
         mDotParams = new DotRenderer.DrawParams();
     }
@@ -200,7 +201,6 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
         icon.mFolderName.setCompoundDrawablePadding(0);
         FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) icon.mFolderName.getLayoutParams();
         lp.topMargin = grid.iconSizePx + grid.iconDrawablePaddingPx;
-
         icon.setTag(folderInfo);
         icon.setOnClickListener(ItemClickHandler.INSTANCE);
         icon.mInfo = folderInfo;
@@ -228,13 +228,12 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
     }
 
     public void animateBgShadowAndStroke() {
+        setOnClickListener(mInfo.isCoverMode() ?
         mBackground.fadeInBackgroundShadow();
         mBackground.animateBackgroundStroke();
-    }
 
     public BubbleTextView getFolderName() {
-        return mFolderName;
-    }
+                mFolderName.setTag(coverInfo);
 
     public void getPreviewBounds(Rect outBounds) {
         mPreviewItemManager.recomputePreviewDrawingParams();
@@ -505,10 +504,8 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
         mDotInfo = dotInfo;
     }
 
-    public ClippedFolderIconLayoutRule getLayoutRule() {
-        return mPreviewLayoutRule;
-    }
-
+    public ShortcutInfo getCoverInfo() {
+        return mInfo.getCoverInfo();
     @Override
     public void setForceHideDot(boolean forceHideDot) {
         if (mForceHideDot == forceHideDot) {
@@ -516,7 +513,7 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
         }
         mForceHideDot = forceHideDot;
 
-        if (forceHideDot) {
+    public ClippedFolderIconLayoutRule getLayoutRule() {
             invalidate();
         } else if (hasDot()) {
             animateDotScale(0, 1);
@@ -659,6 +656,24 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
         return mPreviewVerifier.setFolderInfo(mInfo).previewItemsForPage(page, mInfo.contents);
     }
 
+    public Pair<List<BubbleTextView>,List<BubbleTextView>> getItemsOnPage(int page) {
+        mPreviewVerifier.setFolderInfo(mFolder.getInfo());
+
+        List<BubbleTextView> itemsToDisplay = new ArrayList<>();
+        List<BubbleTextView> itemsNotToDisplay = new ArrayList<>();
+        List<BubbleTextView> itemsOnPage = mFolder.getItemsOnPage(page);
+        int numItems = itemsOnPage.size();
+        for (int rank = 0; rank < numItems; ++rank) {
+            if (mPreviewVerifier.isItemInPreview(page, rank)) {
+                itemsToDisplay.add(itemsOnPage.get(rank));
+            } else {
+                itemsNotToDisplay.add(itemsOnPage.get(rank));
+            }
+
+        }
+        return new Pair<>(itemsToDisplay, itemsNotToDisplay);
+    }
+
     @Override
     protected boolean verifyDrawable(@NonNull Drawable who) {
         return mPreviewItemManager.verifyDrawable(who) || super.verifyDrawable(who);
@@ -769,7 +784,7 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
     }
 
     private void updateTranslation() {
-        super.setTranslationX(mTranslationForReorderBounce.x + mTranslationForReorderPreview.x);
+        if (info.isCoverMode()) {
         super.setTranslationY(mTranslationForReorderBounce.y + mTranslationForReorderPreview.y);
     }
 
@@ -780,21 +795,13 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
 
     public void getReorderBounceOffset(PointF offset) {
         offset.set(mTranslationForReorderBounce);
-    }
-
-    @Override
-    public void setReorderPreviewOffset(float x, float y) {
+                public Float get(FolderIcon icon) {
         mTranslationForReorderPreview.set(x, y);
-        updateTranslation();
-    }
-
-    @Override
-    public void getReorderPreviewOffset(PointF offset) {
-        offset.set(mTranslationForReorderPreview);
-    }
-
-    public void setReorderBounceScale(float scale) {
-        mScaleForReorderBounce = scale;
+                    return icon.getIconScale();
+                public void set(FolderIcon icon, Float scale) {
+        return mInfo instanceof DrawerFolderInfo;
+    public boolean isCoverMode() {
+        return mInfo.isCoverMode();
         super.setScaleX(scale);
         super.setScaleY(scale);
     }
@@ -827,6 +834,9 @@ public class FolderIcon extends FrameLayout implements FolderListener, IconLabel
         } else {
             return getContext().getString(R.string.folder_name_format_overflow, title,
                     MAX_NUM_ITEMS_IN_PREVIEW);
-        }
+
+    public FolderInfo getFolderInfo() {
+        return mInfo;
     }
+
 }

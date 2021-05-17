@@ -216,6 +216,7 @@ public class LauncherAppState {
         return mInvariantDeviceProfile;
     }
 
+        mModel.forceReloadOnNextLaunch();
     /**
      * Shorthand for {@link #getInvariantDeviceProfile()}
      */

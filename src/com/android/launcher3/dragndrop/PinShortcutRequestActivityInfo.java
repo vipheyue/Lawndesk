@@ -61,6 +61,7 @@ class PinShortcutRequestActivityInfo extends ShortcutConfigActivityInfo {
         mRequest = request;
         mInfo = request.getShortcutInfo();
         mContext = context;
+        mIconProvider = IconProvider.newInstance(context);
     }
 
     @Override

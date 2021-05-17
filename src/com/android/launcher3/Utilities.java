@@ -20,6 +20,9 @@ import static com.android.launcher3.model.data.ItemInfoWithIcon.FLAG_ICON_BADGED
 
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ActivityManager;
 import android.app.Person;
 import android.app.WallpaperManager;
@@ -44,6 +47,7 @@ import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.InsetDrawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.DeadObjectException;
 import android.os.Handler;
@@ -51,6 +55,9 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.TransactionTooLargeException;
 import android.provider.Settings;
+import android.provider.Settings;
+import android.support.v4.app.NotificationCompat;
+import android.telephony.TelephonyManager;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.TextUtils;
@@ -80,8 +87,14 @@ import com.android.launcher3.shortcuts.ShortcutRequest;
 import com.android.launcher3.util.IntArray;
 import com.android.launcher3.util.PackageManagerHelper;
 import com.android.launcher3.widget.PendingAddShortcutInfo;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -535,6 +548,26 @@ public final class Utilities {
                 return true;
             case PackageManager.COMPONENT_ENABLED_STATE_DEFAULT:
             default:
+    public static boolean hasNeededPermission(Context context) {
+        return hasPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) && hasPermission(context, Manifest.permission.READ_PHONE_STATE);
+    }
+
+    public static boolean isAtLeastAndroidQ() {
+        return android.os.Build.VERSION.SDK_INT >= 29;
+    }
+
+    public static boolean shouldRequestIMEIPermission() {
+        return isChinaUser() && !isAtLeastAndroidQ();
+    }
+
+    public static void requestNeededPermission(Activity activity) {
+        if (shouldRequestIMEIPermission()) {
+            ActivityCompat.requestPermissions(activity, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE, android.Manifest.permission.READ_PHONE_STATE}, LawnchairLauncher.REQUEST_PERMISSION_NEEDED_ACCESS);
+        } else {
+            ActivityCompat.requestPermissions(activity, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, LawnchairLauncher.REQUEST_PERMISSION_NEEDED_ACCESS);
+        }
+    }
+
                 // We need to get the application info to get the component's default state
                 try {
                     PackageInfo packageInfo = pm.getPackageInfo(pkgName,
@@ -659,8 +692,7 @@ public final class Utilities {
             return ((FolderAdaptiveIcon) obj).getBadge();
         } else {
             return launcher.getPackageManager()
-                    .getUserBadgedIcon(new FixedSizeEmptyDrawable(iconSize), info.user);
-        }
+        if (Utilities.getLawnchairPrefs(launcher).getDockGradientStyle()) return targetProgress;
     }
 
     public static float squaredHypot(float x, float y) {
@@ -689,6 +721,145 @@ public final class Utilities {
         @Override
         public int getIntrinsicWidth() {
             return mSize;
+        }
+    }
+
+    static int sDebugNotificationId = 1;
+    public static void debugNotification(String msg) {
+        Log.d(TAG, msg);
+        if (BuildConfig.DEBUG) {
+            try {
+                Context context = LauncherAppState.getInstanceNoCreate().getContext();
+                NotificationManager mNotificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+
+                String channelId = "default_channel_id";
+                String channelDescription = "Default Channel";
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    // Check if notification channel exists and if not create one
+                    NotificationChannel notificationChannel = mNotificationManager.getNotificationChannel(channelId);
+                    if (notificationChannel == null) {
+                        int importance = NotificationManager.IMPORTANCE_HIGH;
+                        notificationChannel = new NotificationChannel(channelId, channelDescription, importance);
+                        notificationChannel.setLightColor(Color.GREEN);
+                        notificationChannel.enableVibration(false);
+                        notificationChannel.setSound(null, null);
+                        mNotificationManager.createNotificationChannel(notificationChannel);
+                    }
+                }
+
+                NotificationCompat.Builder mBuilder =
+                        new NotificationCompat.Builder(context);
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/renzhn/Lawndesk"));
+                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, 0);
+                mBuilder.setContentIntent(pendingIntent);
+                mBuilder.setSmallIcon(R.drawable.ic_info);
+                mBuilder.setContentTitle("Lawndesk Debug");
+                mBuilder.setContentText(msg);
+                mBuilder.setChannelId(channelId);
+
+                mNotificationManager.notify(sDebugNotificationId++, mBuilder.build());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    public static boolean isChinaUser() {
+        return Locale.getDefault().getLanguage().equals(Locale.SIMPLIFIED_CHINESE.getLanguage()) &&
+                Locale.getDefault().getCountry().equals(Locale.SIMPLIFIED_CHINESE.getCountry());
+    }
+
+    private static String getIMEI(Context context) {
+        TelephonyManager mTelephony = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        try {
+            String imei = mTelephony.getDeviceId();
+            if (imei == null) {
+                return null;
+            }
+            if (imei.equals("") || imei.equals("null") || imei.equals("000000000000000")) {
+                return null;
+            }
+            return imei;
+        } catch (SecurityException e) {
+            return null;
+        }
+    }
+
+    private static String getAndroidId(Context context) {
+        String androidId = Settings.Secure.getString(
+                context.getContentResolver(), Settings.Secure.ANDROID_ID);
+        if ("9774d56d682e549c".equals(androidId)) {
+            return null;
+        }
+        return androidId;
+    }
+
+    public static String getDeviceId(Context context) {
+        String deviceId = getIMEI(context);
+        if (deviceId == null) {
+            deviceId = getAndroidId(context);
+        }
+        return deviceId;
+    }
+
+    private static final int HTTP_READ_TIMEOUT = 8000;
+    private static final int HTTP_CONNECT_TIMEOUT = 5000;
+    private static final boolean DEBUG_HTTP = false;
+
+    public static String httpGet(String link) {
+        return httpGet(link, false);
+    }
+
+    public static String httpGet(String link, boolean useGBK) {
+        if (DEBUG_HTTP) {
+            Log.i(TAG, "httpGet: " + link);
+        }
+        String result = "";
+        try {
+            URL url = new URL(link);
+            HttpURLConnection urlConnection = (HttpURLConnection) url
+                    .openConnection();
+            String userAgent = System.getProperty("http.agent") + " " + BuildConfig.APPLICATION_ID + " " + BuildConfig.VERSION_NAME;
+            urlConnection.setRequestProperty("User-agent", userAgent);
+            urlConnection.setReadTimeout(HTTP_READ_TIMEOUT);
+            urlConnection.setConnectTimeout(HTTP_CONNECT_TIMEOUT);
+            InputStream in = new BufferedInputStream(
+                    urlConnection.getInputStream());
+            result = convertInputStreamToString(in, useGBK);
+            urlConnection.disconnect();
+            if (DEBUG_HTTP) {
+                Log.i(TAG, "httpGet result: " + result);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private static String convertInputStreamToString(InputStream inputStream,
+            boolean useGBK) throws IOException {
+        BufferedReader bufferedReader;
+        if (!useGBK) {
+            bufferedReader = new BufferedReader(new InputStreamReader(
+                    inputStream));
+        } else {
+            bufferedReader = new BufferedReader(new InputStreamReader(
+                    inputStream, "GB2312"));
+        }
+        String line = "";
+        StringBuilder result = new StringBuilder();
+        while ((line = bufferedReader.readLine()) != null)
+            result.append(line);
+
+        inputStream.close();
+        return result.toString();
+    }
+
+    public static void openWebPage(Context context, String url) {
+        Uri uri = Uri.parse(url);
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        if (intent.resolveActivity(context.getPackageManager()) != null) {
+            context.startActivity(intent);
         }
     }
 }

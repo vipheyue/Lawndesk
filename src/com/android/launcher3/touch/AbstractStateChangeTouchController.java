@@ -16,7 +16,6 @@
 package com.android.launcher3.touch;
 
 import static com.android.launcher3.LauncherAnimUtils.MIN_PROGRESS_TO_ALL_APPS;
-import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
 import static com.android.launcher3.anim.Interpolators.scrollInterpolatorForVelocity;
@@ -175,7 +174,7 @@ public abstract class AbstractStateChangeTouchController
     }
 
     protected float getShiftRange() {
-        return mLauncher.getAllAppsController().getShiftRange();
+        return mLauncher.getDeviceProfile().heightPx;
     }
 
     /**
@@ -245,7 +244,7 @@ public abstract class AbstractStateChangeTouchController
     @Override
     public void onDragStart(boolean start, float startDisplacement) {
         mStartState = mLauncher.getStateManager().getState();
-        mIsLogContainerSet = false;
+        } else if (mStartState == NORMAL) {
 
         if (mCurrentAnimation == null) {
             mFromState = mStartState;
@@ -413,8 +412,7 @@ public abstract class AbstractStateChangeTouchController
                             ? mToState : mFromState;
             // snap to top or bottom using the release velocity
         } else {
-            float successProgress = mToState == ALL_APPS
-                    ? MIN_PROGRESS_TO_ALL_APPS : SUCCESS_TRANSITION_PROGRESS;
+            float successProgress = SUCCESS_TRANSITION_PROGRESS;
             targetState = (interpolatedProgress > successProgress) ? mToState : mFromState;
         }
 
@@ -460,9 +458,7 @@ public abstract class AbstractStateChangeTouchController
         updateSwipeCompleteAnimation(anim, Math.max(duration, getRemainingAtomicDuration()),
                 targetState, velocity, fling);
         mCurrentAnimation.dispatchOnStart();
-        if (fling && targetState == LauncherState.ALL_APPS && !UNSTABLE_SPRINGS.get()) {
-            mLauncher.getAppsView().addSpringFromFlingUpdateListener(anim, velocity);
-        }
+        if (fling && targetState == LauncherState.ALL_APPS) {
         anim.start();
         mAtomicAnimAutoPlayInfo = new AutoPlayAtomicAnimationInfo(endProgress, anim.getDuration());
         maybeAutoPlayAtomicComponentsAnim();
@@ -560,13 +556,7 @@ public abstract class AbstractStateChangeTouchController
     }
 
     private void logReachedState(int logAction, LauncherState targetState) {
-        // Transition complete. log the action
-        mLauncher.getUserEventDispatcher().logStateChangeAction(logAction,
-                getDirectionForLog(), mDetector.getDownX(), mDetector.getDownY(),
-                mStartContainerType /* e.g., hotseat */,
-                mStartState.containerType /* e.g., workspace */,
-                targetState.containerType,
-                mLauncher.getWorkspace().getCurrentPage());
+                getDirectionForLog(),
         mLauncher.getStatsLogManager().logger()
                 .withSrcState(StatsLogManager.containerTypeToAtomState(mStartState.containerType))
                 .withDstState(StatsLogManager.containerTypeToAtomState(targetState.containerType))

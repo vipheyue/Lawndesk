@@ -276,28 +276,14 @@ public class AddWorkspaceItemsTask extends BaseModelUpdateTask {
 
         int screenCount = workspaceScreens.size();
         // First check the preferred screen.
-        int preferredScreenIndex = workspaceScreens.isEmpty() ? 0 : 1;
-        if (preferredScreenIndex < screenCount) {
-            screenId = workspaceScreens.get(preferredScreenIndex);
+        if (screenCount > 0) {
+            screenId = workspaceScreens.get(screenCount - 1);
             found = findNextAvailableIconSpaceInScreen(
                     app, screenItems.get(screenId), cordinates, spanX, spanY);
         }
 
         if (!found) {
-            // Search on any of the screens starting from the first screen.
-            for (int screen = 1; screen < screenCount; screen++) {
-                screenId = workspaceScreens.get(screen);
-                if (findNextAvailableIconSpaceInScreen(
-                        app, screenItems.get(screenId), cordinates, spanX, spanY)) {
-                    // We found a space for it
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        if (!found) {
-            // Still no position found. Add a new screen to the end.
+            // No position found. Add a new screen to the end.
             screenId = LauncherSettings.Settings.call(app.getContext().getContentResolver(),
                     LauncherSettings.Settings.METHOD_NEW_SCREEN_ID)
                     .getInt(LauncherSettings.Settings.EXTRA_VALUE);
@@ -326,7 +312,7 @@ public class AddWorkspaceItemsTask extends BaseModelUpdateTask {
                 occupied.markCells(r, true);
             }
         }
-        return occupied.findVacantCell(xy, spanX, spanY);
+        return occupied.findLastVacantCell(xy, spanX, spanY);
     }
 
 }

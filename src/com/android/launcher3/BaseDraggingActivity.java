@@ -188,7 +188,6 @@ public abstract class BaseDraggingActivity extends BaseActivity
                 AppLaunchTracker.INSTANCE.get(this).onStartApp(intent.getComponent(), user,
                         sourceContainer);
             }
-            getUserEventDispatcher().logAppLaunch(v, intent, user);
             if (item != null) {
                 InstanceId instanceId = new InstanceIdSequence().newInstanceId();
                 logAppLaunch(item, instanceId);

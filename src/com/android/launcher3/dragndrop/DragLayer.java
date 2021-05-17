@@ -87,7 +87,6 @@ public class DragLayer extends BaseDragLayer<Launcher> {
 
     // View that should handle move events
     private View mMoveTarget;
-
     /**
      * Used to create a new DragLayer from XML.
      *

@@ -61,6 +61,10 @@ public class AllAppsStore {
         return mApps;
     }
 
+    public ArrayList<AppInfo> getAppsArrayList() {
+        return new ArrayList<>(getApps());
+    }
+
     /**
      * Sets the current set of apps.
      */

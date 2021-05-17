@@ -54,7 +54,8 @@ public class DefaultAppSearchAlgorithm implements SearchAlgorithm {
     public void doSearch(final String query,
             final AllAppsSearchBarController.Callbacks callback) {
         final ArrayList<ComponentKey> result = getTitleMatchResult(query);
-        mResultHandler.post(() -> callback.onSearchResult(query, result));
+                callback.onSearchResult(query, result, suggestions);
+                callback.onSuggestions(suggestions);
     }
 
     private ArrayList<ComponentKey> getTitleMatchResult(String query) {

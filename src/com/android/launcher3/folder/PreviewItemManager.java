@@ -45,6 +45,7 @@ import com.android.launcher3.views.ActivityContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import static com.android.launcher3.folder.ClippedFolderIconLayoutRule.MAX_NUM_ITEMS_IN_PREVIEW;
 
 /**
  * Manages the drawing and animations of {@link PreviewItemDrawingParams} for a {@link FolderIcon}.
@@ -154,6 +155,7 @@ public class PreviewItemManager {
 
     private PreviewItemDrawingParams getFinalIconParams(PreviewItemDrawingParams params) {
         float iconSize = mIcon.mActivity.getDeviceProfile().iconSizePx;
+        float iconSize = mIcon.isInAppDrawer() ? dp.allAppsIconSizePx : dp.iconSizePx;
 
         final float scale = iconSize / mReferenceDrawable.getIntrinsicWidth();
         final float trans = (mIcon.mBackground.previewSize - iconSize) / 2;
@@ -350,7 +352,7 @@ public class PreviewItemManager {
             int prevIndex = newItems.indexOf(moveIn.get(i));
             PreviewItemDrawingParams p = params.get(prevIndex);
             computePreviewItemDrawingParams(prevIndex, numItems, p);
-            updateTransitionParam(p, moveIn.get(i), ENTER_INDEX, newItems.indexOf(moveIn.get(i)),
+            updateTransitionParam(p, moveIn.get(i), ENTER_INDEX, newParams.indexOf(moveIn.get(i)),
                     numItems);
         }
 
@@ -370,7 +372,7 @@ public class PreviewItemManager {
             WorkspaceItemInfo item = moveOut.get(i);
             int oldIndex = oldItems.indexOf(item);
             PreviewItemDrawingParams p = computePreviewItemDrawingParams(oldIndex, numItems, null);
-            updateTransitionParam(p, item, oldIndex, EXIT_INDEX, numItems);
+            updateTransitionParam(p, item, oldIndex, mIcon.mPreviewLayoutRule.getExitIndex(), numItems);
             params.add(0, p); // We want these items first so that they are on drawn last.
         }
 

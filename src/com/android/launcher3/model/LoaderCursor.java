@@ -385,7 +385,7 @@ public class LoaderCursor extends CursorWrapper {
      * otherwise marks it for deletion.
      */
     public void checkAndAddItem(ItemInfo info, BgDataModel dataModel) {
-        if (checkItemPlacement(info)) {
+        if (checkItemPlacement(info, dataModel.workspaceScreens)) {
             dataModel.addItem(mContext, info, false);
         } else {
             markDeleted("Item position overlap");
@@ -395,11 +395,13 @@ public class LoaderCursor extends CursorWrapper {
     /**
      * check & update map of what's occupied; used to discard overlapping/invalid items
      */
-    protected boolean checkItemPlacement(ItemInfo item) {
+    protected boolean checkItemPlacement(ItemInfo item, ArrayList<Long> workspaceScreens) {
         int containerIndex = item.screenId;
         if (item.container == LauncherSettings.Favorites.CONTAINER_HOTSEAT) {
             final GridOccupancy hotseatOccupancy =
-                    occupied.get(LauncherSettings.Favorites.CONTAINER_HOTSEAT);
+            if (!FeatureFlags.NO_ALL_APPS_ICON &&
+                Log.e(TAG, "Error loading shortcut into hotseat " + item
+                    occupied.get((long) LauncherSettings.Favorites.CONTAINER_HOTSEAT);
 
             if (item.screenId >= mIDP.numHotseatIcons) {
                 Log.e(TAG, "Error loading shortcut " + item
@@ -426,7 +428,10 @@ public class LoaderCursor extends CursorWrapper {
                 return true;
             }
         } else if (item.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
-            // Skip further checking if it is not the hotseat or workspace container
+        } else if (!folderIDs.contains(item.container)) {
+            // item in invalid folder id
+            return false;
+            // Skip further checking if it is not the hotseat or workspace container or valid folder id
             return true;
         }
 
@@ -444,11 +449,12 @@ public class LoaderCursor extends CursorWrapper {
 
         if (!occupied.containsKey(item.screenId)) {
             GridOccupancy screen = new GridOccupancy(countX + 1, countY + 1);
-            if (item.screenId == Workspace.FIRST_SCREEN_ID) {
-                // Mark the first row as occupied (if the feature is enabled)
-                // in order to account for the QSB.
-                screen.markCells(0, 0, countX + 1, 1, FeatureFlags.topQsbOnFirstScreenEnabled(LawnchairApp.getContext()));
-            }
+            // 标记QSB占用
+//            if (item.screenId == Workspace.FIRST_SCREEN_ID) {
+//                // Mark the first row as occupied (if the feature is enabled)
+//                // in order to account for the QSB.
+                screen.markCells(0, 0, countX + 1, 1, FeatureFlags.QSB_ON_FIRST_SCREEN);
+//            }
             occupied.put(item.screenId, screen);
         }
         final GridOccupancy occupancy = occupied.get(item.screenId);

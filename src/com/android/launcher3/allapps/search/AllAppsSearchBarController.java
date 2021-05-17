@@ -35,7 +35,7 @@ import com.android.launcher3.util.PackageManagerHelper;
 import java.util.ArrayList;
 
 /**
- * An interface to a search box that AllApps can command.
+ * An interface to a search box
  */
 public class AllAppsSearchBarController
         implements TextWatcher, OnEditorActionListener, ExtendedEditText.OnBackKeyListener,
@@ -168,6 +168,9 @@ public class AllAppsSearchBarController
          * @param apps sorted list of matching components or null if in case of failure.
          */
         void onSearchResult(String query, ArrayList<ComponentKey> apps);
+
+
+        void onSuggestions(List<String> suggestions);
 
         /**
          * Called when the search results should be cleared.

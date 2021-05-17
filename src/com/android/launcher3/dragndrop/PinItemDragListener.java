@@ -107,12 +107,9 @@ public class PinItemDragListener extends BaseItemDragListener {
     }
 
     @Override
-    public void fillInLogContainerData(ItemInfo childInfo, LauncherLogProto.Target child,
-            ArrayList<LauncherLogProto.Target> parents) {
-        parents.add(newContainerTarget(LauncherLogProto.ContainerType.PINITEM));
-    }
-
-    @Override
+    public void fillInLogContainerData(View v, ItemInfo info, LauncherLogProto.Target target,
+            LauncherLogProto.Target targetParent) {
+        targetParent.containerType = LauncherLogProto.ContainerType.PINITEM;
     protected void postCleanup() {
         super.postCleanup();
         mCancelSignal.cancel();

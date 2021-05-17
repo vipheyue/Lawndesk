@@ -29,7 +29,7 @@ import static com.android.launcher3.AbstractFloatingView.TYPE_REBIND_SAFE;
 import static com.android.launcher3.AbstractFloatingView.TYPE_SNACKBAR;
 import static com.android.launcher3.InstallShortcutReceiver.FLAG_DRAG_AND_DROP;
 import static com.android.launcher3.LauncherAnimUtils.SPRING_LOADED_EXIT_DELAY;
-import static com.android.launcher3.LauncherState.ALL_APPS;
+import static com.android.launcher3.LauncherState.SEARCH;
 import static com.android.launcher3.LauncherState.FLAG_CLOSE_POPUPS;
 import static com.android.launcher3.LauncherState.FLAG_MULTI_PAGE;
 import static com.android.launcher3.LauncherState.FLAG_NON_INTERACTIVE;
@@ -41,7 +41,6 @@ import static com.android.launcher3.LauncherState.OVERVIEW_PEEK;
 import static com.android.launcher3.LauncherState.SPRING_LOADED;
 import static com.android.launcher3.Utilities.postAsyncCallback;
 import static com.android.launcher3.dragndrop.DragLayer.ALPHA_INDEX_LAUNCHER_LOAD;
-import static com.android.launcher3.logging.LoggerUtils.newContainerTarget;
 import static com.android.launcher3.logging.StatsLogManager.LAUNCHER_STATE_BACKGROUND;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ONRESUME;
 import static com.android.launcher3.logging.StatsLogManager.LauncherEvent.LAUNCHER_ONSTOP;
@@ -59,6 +58,7 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
 import android.app.ActivityOptions;
+import android.app.ProgressDialog;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
@@ -95,16 +95,13 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
-import androidx.annotation.Nullable;
-import androidx.annotation.StringRes;
+import ch.deletescape.lawnchair.bugreport.BugReportClient;
+import ch.deletescape.lawnchair.theme.ThemeOverride;
 import androidx.annotation.VisibleForTesting;
 
 import com.android.launcher3.DropTarget.DragObject;
 import com.android.launcher3.accessibility.LauncherAccessibilityDelegate;
-import com.android.launcher3.allapps.AllAppsContainerView;
 import com.android.launcher3.allapps.AllAppsStore;
-import com.android.launcher3.allapps.AllAppsTransitionController;
-import com.android.launcher3.allapps.DiscoveryBounce;
 import com.android.launcher3.anim.PropertyListBuilder;
 import com.android.launcher3.compat.AccessibilityManagerCompat;
 import com.android.launcher3.config.FeatureFlags;
@@ -121,8 +118,7 @@ import com.android.launcher3.keyboard.ViewGroupFocusHelper;
 import com.android.launcher3.logger.LauncherAtom;
 import com.android.launcher3.logging.FileLog;
 import com.android.launcher3.logging.StatsLogManager;
-import com.android.launcher3.logging.UserEventDispatcher;
-import com.android.launcher3.model.AppLaunchTracker;
+import com.android.launcher3.logging.UserEventDispatcher.UserEventDelegate;
 import com.android.launcher3.model.BgDataModel.Callbacks;
 import com.android.launcher3.model.ModelWriter;
 import com.android.launcher3.model.data.AppInfo;
@@ -133,7 +129,6 @@ import com.android.launcher3.model.data.PromiseAppInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.notification.NotificationListener;
 import com.android.launcher3.pm.PinRequestHelper;
-import com.android.launcher3.pm.UserCache;
 import com.android.launcher3.popup.PopupContainerWithArrow;
 import com.android.launcher3.popup.PopupDataProvider;
 import com.android.launcher3.popup.SystemShortcut;
@@ -148,7 +143,6 @@ import com.android.launcher3.testing.TestProtocol;
 import com.android.launcher3.touch.AllAppsSwipeController;
 import com.android.launcher3.touch.ItemClickHandler;
 import com.android.launcher3.uioverrides.plugins.PluginManagerWrapper;
-import com.android.launcher3.userevent.nano.LauncherLogProto.Action;
 import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
 import com.android.launcher3.userevent.nano.LauncherLogProto.Target;
 import com.android.launcher3.util.ActivityResultInfo;
@@ -207,7 +201,7 @@ import java.util.stream.Stream;
  * Default launcher application.
  */
 public class Launcher extends StatefulActivity<LauncherState> implements LauncherExterns,
-        Callbacks, InvariantDeviceProfile.OnIDPChangeListener, PluginListener<OverlayPlugin> {
+        LauncherModel.Callbacks, LauncherProviderChangeListener, UserEventDelegate{
     public static final String TAG = "Launcher";
 
     public static final ActivityTracker<Launcher> ACTIVITY_TRACKER = new ActivityTracker<>();
@@ -281,13 +275,14 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
 
     @Thunk
     Hotseat mHotseat;
+    @Nullable private View mHotseatSearchBox;
 
     private DropTargetBar mDropTargetBar;
 
     // Main container view for the all apps screen.
     @Thunk
-    AllAppsContainerView mAppsView;
-    AllAppsTransitionController mAllAppsController;
+    @Thunk AllAppsContainerView mAppsView;
+    public AllAppsTransitionController mAllAppsController;
 
     // Scrim view for the all apps and overview state.
     @Thunk
@@ -343,6 +338,8 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
     private boolean mDeferOverlayCallbacks;
     private final Runnable mDeferredOverlayCallbacks = this::checkIfOverlayStillDeferred;
 
+    ProgressDialog mProgressDialog;
+
     private long mLastTouchUpTime = -1;
     private boolean mTouchInProgress;
 
@@ -370,7 +367,19 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         super.onCreate(savedInstanceState);
 
         LauncherAppState app = LauncherAppState.getInstance(this);
+
+        // 首次使用显示加载中
+        if (!prefs.getDesktopInitialized()) {
+            if (mProgressDialog == null) {
+                mProgressDialog = new ProgressDialog(Launcher.this);
+            }
+            mProgressDialog.setMessage(getResources().getString(R.string.initializing_desktop));
+            mProgressDialog.setCanceledOnTouchOutside(false);
+            mProgressDialog.show();
+        }
+
         app.setLauncher(this);
+        prefs.getFolderGridSize();
         mOldConfig = new Configuration(getResources().getConfiguration());
         mModel = app.getModel();
 
@@ -383,7 +392,6 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         mAccessibilityDelegate = new LauncherAccessibilityDelegate(this);
 
         mDragController = new DragController(this);
-        mAllAppsController = new AllAppsTransitionController(this);
         mStateManager = new StateManager<>(this, NORMAL);
 
         mOnboardingPrefs = createOnboardingPrefs(mSharedPrefs);
@@ -892,7 +900,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
             mOverlayManager.onActivityStopped(this);
         }
 
-        logStopAndResume(Action.Command.STOP);
+        getUserEventDispatcher().logActionCommand(Action.Command.STOP,
         mAppWidgetHost.setListenIfResumed(false);
         NotificationListener.removeNotificationsChangedListener();
     }
@@ -907,7 +915,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         }
 
         mAppWidgetHost.setListenIfResumed(true);
-        TraceHelper.INSTANCE.endSection(traceToken);
+                    mStateManager.getState().containerType, -1);
     }
 
     @Override
@@ -928,7 +936,6 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         // Set the notification listener and fetch updated notifications when we resume
         NotificationListener.setNotificationsChangedListener(mPopupDataProvider);
 
-        DiscoveryBounce.showForHomeIfNeeded(this);
     }
 
     protected void handlePendingActivityRequest() { }
@@ -937,6 +944,11 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         if (mPendingExecutor != null) return;
         int pageIndex = mWorkspace.isOverlayShown() ? -1 : mWorkspace.getCurrentPage();
         int containerType = mStateManager.getState().containerType;
+        mWorkspace.organizeCurrentPage();
+
+        if (mStateManager.getState() == SEARCH) {
+            mSearchView.refreshAppsList();
+        }
 
         StatsLogManager.EventEnum event;
         StatsLogManager.StatsLogger logger = getStatsLogManager().logger();
@@ -1142,7 +1154,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         mWorkspace.initParentViews(mDragLayer);
         mOverviewPanel = findViewById(R.id.overview_panel);
         mHotseat = findViewById(R.id.hotseat);
-        mHotseat.setWorkspace(mWorkspace);
+        mHotseatSearchBox = findViewById(R.id.search_container_hotseat);
 
         // Setup the drag layer
         mDragLayer.setup(mDragController, mWorkspace);
@@ -1151,22 +1163,20 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         // Until the workspace is bound, ensure that we keep the wallpaper offset locked to the
         // default state, otherwise we will update to the wrong offsets in RTL
         mWorkspace.lockWallpaperToDefaultPage();
-        mWorkspace.bindAndInitFirstWorkspaceScreen(null /* recycled qsb */);
+//        mWorkspace.bindAndInitFirstWorkspaceScreen(null /* recycled qsb */);
         mDragController.addDragListener(mWorkspace);
 
         // Get the search/delete/uninstall bar
         mDropTargetBar = mDragLayer.findViewById(R.id.drop_target_bar);
 
-        // Setup Apps
-        mAppsView = findViewById(R.id.apps_view);
+        mSearchView = findViewById(R.id.search_view);
 
         // Setup Scrim
         mScrimView = findViewById(R.id.scrim_view);
 
         // Setup the drag controller (drop targets have to be added in reverse order in priority)
         mDropTargetBar.setup(mDragController);
-
-        mAllAppsController.setupViews(mAppsView, mScrimView);
+        mAllAppsController.setupViews(mAppsView);
     }
 
     /**
@@ -1336,7 +1346,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
 
     private void updateNotificationDots(Predicate<PackageUserKey> updatedDots) {
         mWorkspace.updateNotificationDots(updatedDots);
-        mAppsView.getAppsStore().updateNotificationDots(updatedDots);
+        mAppsView.getAppsStore().updateIconBadges(updatedBadges);
     }
 
     @Override
@@ -1359,8 +1369,6 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         return instance;
     }
 
-    public AllAppsTransitionController getAllAppsController() {
-        return mAllAppsController;
     }
 
     @Override
@@ -1368,8 +1376,8 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         return mDragLayer;
     }
 
-    public AllAppsContainerView getAppsView() {
-        return mAppsView;
+    public SearchContainerView getSearchView() {
+        return mSearchView;
     }
 
     public Workspace getWorkspace() {
@@ -1378,8 +1386,6 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
 
     public Hotseat getHotseat() {
         return mHotseat;
-    }
-
     public <T extends View> T getOverviewPanel() {
         return (T) mOverviewPanel;
     }
@@ -1435,9 +1441,9 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
                 && AbstractFloatingView.getTopOpenView(this) == null;
         boolean isActionMain = Intent.ACTION_MAIN.equals(intent.getAction());
         boolean internalStateHandled = ACTIVITY_TRACKER.handleNewIntent(this, intent);
-
         if (isActionMain) {
             if (!internalStateHandled) {
+                // Note: There should be at most one log per method call. This is enforced
                 // In all these cases, only animate if we're already on home
                 closeOpenViews(isStarted());
 
@@ -1450,7 +1456,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
 
                 // Reset the apps view
                 if (!alreadyOnHome) {
-                    mAppsView.reset(isStarted() /* animate */);
+                    mSearchView.reset(isStarted() /* animate */);
                 }
 
                 if (shouldMoveToDefaultScreen && !mWorkspace.isHandlingTouch()) {
@@ -1904,6 +1910,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
             if (mOnDeferredActivityLaunchCallback != null) {
                 mOnDeferredActivityLaunchCallback.run();
                 mOnDeferredActivityLaunchCallback = null;
+            } else if (state == LauncherState.OVERVIEW) {
             }
             return true;
         }
@@ -2040,11 +2047,10 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
     @Override
     public void bindScreens(IntArray orderedScreenIds) {
         // Make sure the first screen is always at the start.
-        if (FeatureFlags.topQsbOnFirstScreenEnabled(this) &&
-                orderedScreenIds.indexOf(Workspace.FIRST_SCREEN_ID) != 0) {
-            orderedScreenIds.removeValue(Workspace.FIRST_SCREEN_ID);
-            orderedScreenIds.add(0, Workspace.FIRST_SCREEN_ID);
-        } else if (!FeatureFlags.topQsbOnFirstScreenEnabled(this) && orderedScreenIds.isEmpty()) {
+        if (FeatureFlags.QSB_ON_FIRST_SCREEN &&
+        if (orderedScreenIds.isEmpty()) {
+            orderedScreenIds.remove(Workspace.FIRST_SCREEN_ID);
+        } else if (!FeatureFlags.QSB_ON_FIRST_SCREEN && orderedScreenIds.isEmpty()) {
             // If there are no screens, we need to have an empty screen
             mWorkspace.addExtraEmptyScreen();
         }
@@ -2060,10 +2066,8 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         int count = orderedScreenIds.size();
         for (int i = 0; i < count; i++) {
             int screenId = orderedScreenIds.get(i);
-            if (!FeatureFlags.topQsbOnFirstScreenEnabled(this) || screenId != Workspace.FIRST_SCREEN_ID) {
-                // No need to bind the first screen, as its always bound.
-                mWorkspace.insertNewWorkspaceScreenBeforeEmptyScreen(screenId);
-            }
+            if (!FeatureFlags.QSB_ON_FIRST_SCREEN || screenId != Workspace.FIRST_SCREEN_ID) {
+            mWorkspace.insertNewWorkspaceScreenBeforeEmptyScreen(screenId);
         }
     }
 
@@ -2388,9 +2392,9 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
     public void executeOnNextDraw(ViewOnDrawExecutor executor) {
         clearPendingBinds();
         mPendingExecutor = executor;
-        if (!isInState(ALL_APPS)) {
-            mAppsView.getAppsStore().enableDeferUpdates(AllAppsStore.DEFER_UPDATES_NEXT_DRAW);
-            mPendingExecutor.execute(() -> mAppsView.getAppsStore().disableDeferUpdates(
+        if (!isInState(SEARCH)) {
+            mAppsView.getAppsStore().setDeferUpdates(true);
+            mPendingExecutor.execute(() -> mAppsView.getAppsStore().setDeferUpdates(false));
                     AllAppsStore.DEFER_UPDATES_NEXT_DRAW));
         }
 
@@ -2456,6 +2460,10 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         TraceHelper.INSTANCE.endSection(traceToken);
     }
 
+    public void verifyApplications(ArrayList<AppInfo> apps) {
+        mWorkspace.verifyApplications(apps);
+    }
+
     private boolean canRunNewAppsAnimation() {
         if (mDragController.isDragging()) {
             return false;
@@ -2478,27 +2486,26 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
     }
 
     /**
-     * Add the icons for all apps.
-     *
-     * Implementation of the method from LauncherModel.Callbacks.
-     */
     @Override
-    public void bindAllApplications(AppInfo[] apps, int flags) {
-        mAppsView.getAppsStore().setApps(apps, flags);
-    }
-
-    /**
+    public void bindAllApplications(ArrayList<AppInfo> apps) {
+        mAppsView.getAppsStore().setApps(apps);
      * Copies LauncherModel's map of activities to shortcut counts to Launcher's. This is necessary
      * because LauncherModel's map is updated in the background, while Launcher runs on the UI.
      */
     @Override
     public void bindDeepShortcutMap(HashMap<ComponentKey, Integer> deepShortcutMapCopy) {
         mPopupDataProvider.setDeepShortcutMap(deepShortcutMapCopy);
+    @Override
+    public void bindAllApplications(ArrayList<AppInfo> apps) {
+        mSearchView.getAppsStore().setApps(apps);
+    }
+
+        mAppsView.getAppsStore().addOrUpdateApps(apps);
     }
 
     @Override
     public void bindPromiseAppProgressUpdated(PromiseAppInfo app) {
-        mAppsView.getAppsStore().updatePromiseAppProgress(app);
+        mSearchView.getAppsStore().updatePromiseAppProgress(app);
     }
 
     @Override
@@ -2543,6 +2550,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
     }
 
     @Override
+        mAppsView.getAppsStore().removeApps(appInfos);
     public void bindAllWidgets(final ArrayList<WidgetListRowEntry> allWidgets) {
         mPopupDataProvider.setAllWidgets(allWidgets);
     }
@@ -2621,8 +2629,6 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         if (isInState(NORMAL)) {
             shortcutInfos.add(new KeyboardShortcutInfo(getString(R.string.all_apps_button_label),
                     KeyEvent.KEYCODE_A, KeyEvent.META_CTRL_ON));
-            shortcutInfos.add(new KeyboardShortcutInfo(getString(R.string.widget_button_text),
-                    KeyEvent.KEYCODE_W, KeyEvent.META_CTRL_ON));
         }
         final View currentFocus = getCurrentFocus();
         if (currentFocus != null) {
@@ -2650,7 +2656,7 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
             switch (keyCode) {
                 case KeyEvent.KEYCODE_A:
                     if (isInState(NORMAL)) {
-                        getStateManager().goToState(ALL_APPS);
+                        getStateManager().goToState(SEARCH);
                         return true;
                     }
                     break;
@@ -2762,7 +2768,44 @@ public class Launcher extends StatefulActivity<LauncherState> implements Launche
         void onLauncherResume();
     }
 
-    private static class NonConfigInstance {
-        public Configuration config;
+    private ArrayList<ComponentKey> mRecentLaunchedApps;
+
+        if (mRecentLaunchedApps == null) {
+            LawnchairPreferences prefs = Utilities.getLawnchairPrefs(this);
+            mRecentLaunchedApps =  prefs.getRecentLaunchedApps().toList();
+        }
+        return mRecentLaunchedApps;
+    }
+
+    public void setRecentLaunchedApps(ArrayList<ComponentKey> recentLaunchedApps) {
+        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(this);
+        prefs.getRecentLaunchedApps().replaceWith(recentLaunchedApps);
+    }
+
+    public void addRecentLaunchedApps(ComponentKey ck) {
+        if (ck == null || mRecentLaunchedApps == null) {
+            return;
+        }
+        mRecentLaunchedApps.remove(ck);
+        mRecentLaunchedApps.add(0, ck);
+        int numAppsPerRow = getDeviceProfile().inv.numColsDrawer;
+        if (mRecentLaunchedApps.size() > 1 && mRecentLaunchedApps.size() > numAppsPerRow) {
+            mRecentLaunchedApps.remove(mRecentLaunchedApps.size() - 1);
+        }
+        setRecentLaunchedApps(mRecentLaunchedApps);
+    }
+
+    public void dismissLoading() {
+        runOnUiThread(new Runnable(){
+            @Override
+                try {
+                    mProgressDialog.dismiss();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        LawnchairPreferences prefs = Utilities.getLawnchairPrefs(this);
+        prefs.setDesktopInitialized(true);
     }
 }

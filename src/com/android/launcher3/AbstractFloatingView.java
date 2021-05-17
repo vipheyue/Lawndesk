@@ -35,8 +35,6 @@ import android.widget.LinearLayout;
 import androidx.annotation.IntDef;
 
 import com.android.launcher3.anim.PendingAnimation;
-import com.android.launcher3.userevent.nano.LauncherLogProto.Action;
-import com.android.launcher3.userevent.nano.LauncherLogProto.ContainerType;
 import com.android.launcher3.util.TouchController;
 import com.android.launcher3.views.ActivityContext;
 import com.android.launcher3.views.BaseDragLayer;
@@ -51,6 +49,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     @IntDef(flag = true, value = {
             TYPE_FOLDER,
+            TYPE_SEARCH,
             TYPE_ACTION_POPUP,
             TYPE_WIDGETS_BOTTOM_SHEET,
             TYPE_WIDGET_RESIZE_FRAME,
@@ -83,11 +82,14 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
     public static final int TYPE_OPTIONS_POPUP = 1 << 11;
     public static final int TYPE_ICON_SURFACE = 1 << 12;
 
+    // Search
+    public static final int TYPE_SEARCH = 1 << 13;
+
     public static final int TYPE_ALL = TYPE_FOLDER | TYPE_ACTION_POPUP
             | TYPE_WIDGETS_BOTTOM_SHEET | TYPE_WIDGET_RESIZE_FRAME | TYPE_WIDGETS_FULL_SHEET
             | TYPE_ON_BOARD_POPUP | TYPE_DISCOVERY_BOUNCE | TYPE_TASK_MENU
             | TYPE_OPTIONS_POPUP | TYPE_SNACKBAR | TYPE_LISTENER | TYPE_ALL_APPS_EDU
-            | TYPE_ICON_SURFACE;
+            | TYPE_ICON_SURFACE | TYPE_SEARCH;
 
     // Type of popups which should be kept open during launcher rebind
     public static final int TYPE_REBIND_SAFE = TYPE_WIDGETS_FULL_SHEET
@@ -127,10 +129,6 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     public final void close(boolean animate) {
         animate &= Utilities.areAnimationsEnabled(getContext());
-        if (mIsOpen) {
-            BaseActivity.fromContext(getContext()).getUserEventDispatcher()
-                    .resetElapsedContainerMillis("container closed");
-        }
         handleClose(animate);
         mIsOpen = false;
     }
@@ -147,7 +145,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
     public abstract void logActionCommand(int command);
 
     public int getLogContainerType() {
-        return ContainerType.DEFAULT_CONTAINERTYPE;
+        //return ContainerType.DEFAULT_CONTAINERTYPE;
     }
 
     public final boolean isOpen() {
@@ -158,7 +156,7 @@ public abstract class AbstractFloatingView extends LinearLayout implements Touch
 
     /** @return Whether the back is consumed. If false, Launcher will handle the back as well. */
     public boolean onBackPressed() {
-        logActionCommand(Action.Command.BACK);
+        //logActionCommand(Action.Command.BACK);
         close(true);
         return true;
     }

@@ -18,17 +18,20 @@ package com.android.launcher3.touch;
 import static android.view.View.INVISIBLE;
 import static android.view.View.VISIBLE;
 
-import static com.android.launcher3.LauncherState.ALL_APPS;
 import static com.android.launcher3.LauncherState.NORMAL;
 import static com.android.launcher3.LauncherState.OVERVIEW;
+import static com.android.launcher3.LauncherState.SEARCH;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.view.View;
 import android.view.View.OnLongClickListener;
 
+import com.android.launcher3.AppInfo;
 import com.android.launcher3.CellLayout;
-import com.android.launcher3.DeviceProfile;
 import com.android.launcher3.DropTarget;
 import com.android.launcher3.Launcher;
+import com.android.launcher3.R;
 import com.android.launcher3.dragndrop.DragController;
 import com.android.launcher3.dragndrop.DragOptions;
 import com.android.launcher3.folder.Folder;
@@ -44,8 +47,8 @@ public class ItemLongClickListener {
     public static final OnLongClickListener INSTANCE_WORKSPACE =
             ItemLongClickListener::onWorkspaceItemLongClick;
 
-    public static final OnLongClickListener INSTANCE_ALL_APPS =
-            ItemLongClickListener::onAllAppsItemLongClick;
+    public static OnLongClickListener INSTANCE_ALL_APPS =
+            ItemLongClickListener::onSearchItemLongClick;
 
     private static boolean onWorkspaceItemLongClick(View v) {
         TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onWorkspaceItemLongClick");
@@ -77,34 +80,28 @@ public class ItemLongClickListener {
         launcher.getWorkspace().startDrag(longClickCellInfo, dragOptions);
     }
 
-    private static boolean onAllAppsItemLongClick(View v) {
+    private static boolean onSearchItemLongClick(View v) {
         TestLogging.recordEvent(TestProtocol.SEQUENCE_MAIN, "onAllAppsItemLongClick");
         v.cancelLongPress();
         Launcher launcher = Launcher.getLauncher(v.getContext());
-        if (!canStartDrag(launcher)) return false;
         // When we have exited all apps or are in transition, disregard long clicks
-        if (!launcher.isInState(ALL_APPS) && !launcher.isInState(OVERVIEW)) return false;
+        if (!launcher.isInState(SEARCH)) return false;
         if (launcher.getWorkspace().isSwitchingState()) return false;
 
-        // Start the drag
-        final DragController dragController = launcher.getDragController();
-        dragController.addDragListener(new DragController.DragListener() {
-            @Override
-            public void onDragStart(DropTarget.DragObject dragObject, DragOptions options) {
-                v.setVisibility(INVISIBLE);
-            }
-
-            @Override
-            public void onDragEnd() {
-                v.setVisibility(VISIBLE);
-                dragController.removeDragListener(this);
-            }
-        });
-
-        DeviceProfile grid = launcher.getDeviceProfile();
-        DragOptions options = new DragOptions();
-        options.intrinsicIconScaleFactor = (float) grid.allAppsIconSizePx / grid.iconSizePx;
-        launcher.getWorkspace().beginDragShared(v, launcher.getAppsView(), options);
+        if (v.getTag() instanceof AppInfo) {
+            new Throwable().printStackTrace();
+            final AppInfo app = (AppInfo) v.getTag();
+            new AlertDialog.Builder(launcher)
+                    .setMessage(R.string.locate_app_message)
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            launcher.getWorkspace().locateApp(app);
+                        }
+                    })
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+        }
         return false;
     }
 

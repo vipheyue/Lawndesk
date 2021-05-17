@@ -105,15 +105,15 @@ public class ImportDataTask {
 
         boolean createEmptyRowOnFirstScreen;
         if (FeatureFlags.topQsbOnFirstScreenEnabled(mContext)) {
-            try (Cursor c = mContext.getContentResolver().query(mOtherFavoritesUri, null,
-                    // get items on the first row of the first screen (min screen id)
-                    "profileId = ? AND container = -100 AND cellY = 0 AND screen = " +
+//            try (Cursor c = mContext.getContentResolver().query(mOtherFavoritesUri, null,
+                    // get items on the first row of the first screen
+                    "profileId = ? AND container = -100 AND screen = ? AND cellY = 0",
                     "(SELECT MIN(screen) FROM favorites WHERE container = -100)",
-                    new String[]{profileId},
-                    null)) {
-                // First row of first screen is not empty
-                createEmptyRowOnFirstScreen = c.moveToNext();
-            }
+                    new String[]{profileId, Long.toString(firsetScreenId)},
+//                    null)) {
+//                // First row of first screen is not empty
+//                createEmptyRowOnFirstScreen = c.moveToNext();
+//            }
         } else {
             createEmptyRowOnFirstScreen = false;
         }
@@ -182,12 +182,12 @@ public class ImportDataTask {
                             firstScreenId = screen;
                         }
                         // Reset the screen to 0-index value
-                        if (createEmptyRowOnFirstScreen && firstScreenId.equals(screen)) {
-                            // Shift items by 1.
-                            cellY++;
+                        if (createEmptyRowOnFirstScreen && screen == Workspace.FIRST_SCREEN_ID) {
+//                            // Shift items by 1.
+//                            cellY++;
                             // Change the screen id to first screen
                             screen = Workspace.FIRST_SCREEN_ID;
-                        }
+//                        }
 
                         mMaxGridSizeX = Math.max(mMaxGridSizeX, cellX + spanX);
                         mMaxGridSizeY = Math.max(mMaxGridSizeY, cellY + spanY);

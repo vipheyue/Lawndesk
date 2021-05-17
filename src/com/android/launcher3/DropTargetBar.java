@@ -143,7 +143,7 @@ public class DropTargetBar extends FrameLayout
             }
         } else {
             int visibleCount = getVisibleButtonsCount();
-            int availableWidth = width / visibleCount;
+            int availableWidth = visibleCount > 0 ? width / visibleCount : 0;
             boolean textVisible = true;
             for (ButtonDropTarget buttons : mDropTargets) {
                 if (buttons.getVisibility() != GONE) {
@@ -179,7 +179,7 @@ public class DropTargetBar extends FrameLayout
             }
         } else {
             int visibleCount = getVisibleButtonsCount();
-            int frameSize = (right - left) / visibleCount;
+            int frameSize = visibleCount > 0 ? (right - left) / visibleCount : 0;
 
             int start = frameSize / 2;
             int halfWidth;
@@ -231,7 +231,9 @@ public class DropTargetBar extends FrameLayout
      */
     @Override
     public void onDragStart(DropTarget.DragObject dragObject, DragOptions options) {
-        animateToVisibility(true);
+        if (getVisibleButtonsCount() > 0) {
+            animateToVisibility(true);
+        }
     }
 
     /**
@@ -245,7 +247,9 @@ public class DropTargetBar extends FrameLayout
     @Override
     public void onDragEnd() {
         if (!mDeferOnDragEnd) {
-            animateToVisibility(false);
+            if (getVisibleButtonsCount() > 0) {
+                animateToVisibility(false);
+            }
         } else {
             mDeferOnDragEnd = false;
         }
