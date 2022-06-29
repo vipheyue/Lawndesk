@@ -28,7 +28,7 @@
         app:steps="60"
         app:summaryFormat="%.0fdp"
         app:summaryMultiplier="1"
-        app:defaultSeekbarValue="@integer/task_corner_radius"
+        app:defaultSeekbarValue="2"
         android:persistent="true"/>
 
     <ch.deletescape.lawnchair.preferences.StyledPreferenceCategory
