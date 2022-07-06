@@ -83,13 +83,6 @@ android {
             buildConfigField "boolean", "HAS_LEAKCANARY", "false"
         }
 
-        optimized {
-            initWith debug
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'),
-                    'proguard.flags'
-        }
-
         release {
             minifyEnabled true
             shrinkResources true
@@ -119,21 +112,24 @@ android {
     flavorDimensions "default", "custom"
 
     productFlavors {
-        aosp {
-            dimension "default"
-            applicationId 'ch.deletescape.lawnchair'
-            testApplicationId 'com.android.launcher3.tests'
-        }
+//        aosp {
+//            dimension "default"
+//            applicationId 'ch.deletescape.lawnchair'
+//            testApplicationId 'com.android.launcher3.tests'
+//        }
 
-        l3go {
-            dimension "default"
-            applicationId 'com.android.launcher3'
-            testApplicationId 'com.android.launcher3.tests'
+//        l3go {
+//            dimension "default"
+//            applicationId 'com.android.launcher3'
+//            testApplicationId 'com.android.launcher3.tests'
+//        }
+        lawnchair {
+            dimension "custom"
         }
-
         quickstep {
             dimension "default"
-            applicationId 'net.ohrz.lawndesk'
+
+            applicationId 'com.beeboxes.lawndesk'
             testApplicationId 'com.android.launcher3.tests'
 
             resValue "string", "xmlApplicationId", applicationId
@@ -144,9 +140,7 @@ android {
             buildConfigField "boolean", "FEATURE_BUG_REPORTER", "true"
         }
 
-        lawnchair {
-            dimension "custom"
-        }
+
 
     }
 
@@ -174,32 +168,34 @@ android {
             manifest.srcFile "AndroidManifest.xml"
         }
 
-        optimized {
-            manifest.srcFile "AndroidManifest.xml"
-        }
-
         release {
             manifest.srcFile "AndroidManifest.xml"
         }
 
-        androidTest {
-            res.srcDirs = ['tests/res']
-            java.srcDirs = ['tests/src']
-            manifest.srcFile "tests/AndroidManifest-common.xml"
-        }
+//        androidTest {
+//            res.srcDirs = ['tests/res']
+//            java.srcDirs = ['tests/src']
+//            manifest.srcFile "tests/AndroidManifest-common.xml"
+//        }
+//
+//        androidTestDebug {
+//            manifest.srcFile "tests/AndroidManifest.xml"
+//        }
 
-        androidTestDebug {
-            manifest.srcFile "tests/AndroidManifest.xml"
-        }
+//        aosp {
+//            java.srcDirs = ['src_flags', "src_ui_overrides"]
+//        }
 
-        aosp {
-            java.srcDirs = ['src_flags', "src_ui_overrides"]
-        }
+//        l3go {
+//            res.srcDirs = ['go/res']
+//            java.srcDirs = ['go/src_flags', "src_ui_overrides"]
+//            manifest.srcFile "go/AndroidManifest.xml"
+//        }
 
-        l3go {
-            res.srcDirs = ['go/res']
-            java.srcDirs = ['go/src_flags', "src_ui_overrides"]
-            manifest.srcFile "go/AndroidManifest.xml"
+        lawnchair {
+            res.srcDirs = ['lawnchair/res']
+            java.srcDirs = ['lawnchair/src']
+            manifest.srcFile "lawnchair/AndroidManifest.xml"
         }
 
         quickstep {
@@ -208,11 +204,7 @@ android {
             manifest.srcFile "quickstep/AndroidManifest.xml"
         }
 
-        lawnchair {
-            res.srcDirs = ['lawnchair/res']
-            java.srcDirs = ['lawnchair/src']
-            manifest.srcFile "lawnchair/AndroidManifest.xml"
-        }
+
 
     }
 
