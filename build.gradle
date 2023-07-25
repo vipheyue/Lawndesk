@@ -146,7 +146,8 @@ android {
 
     android.applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            outputFileName = "Lawndesk-${variant.versionName}.apk"
+//            outputFileName = "Lawndesk-${variant.versionName}.apk"
+            outputFileName = "Lawndesk.apk"
         }
     }
 
